@@ -34,6 +34,7 @@
         const FileSignature = (props) => <IconBase {...props}><path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L9 18c-.2.5-.5 1-1 1.5Z"/><path d="M14 2v6h6"/><path d="m18 13-1.5-1.5"/><path d="M12.5 16a2.2 2.2 0 0 0-1.8 1.1l-1 2.3 2.6-.9a2 2 0 0 0 1.2-1.3l2.8-6.6-1.5-1.5Z"/></IconBase>;
         const Coins = (props) => <IconBase {...props}><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7 .71-2.82 2.82"/></IconBase>;
         const FileQuestion = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 10.3c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2"/><path d="M12 17h.01"/></IconBase>;
+        const UserCircle = (props) => <IconBase {...props}><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></IconBase>;
 
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROXMFts88KtV4W3wQvWddkGF4bbAF8NQ9Wwybfk9oob8S7cANi6dLl1Z4Gf38JVxlVR6F36Yh4a6Kk/pub?gid=0&single=true&output=csv';
 
@@ -100,13 +101,11 @@
             const [customStartDate, setCustomStartDate] = useState(today);
             const [customEndDate, setCustomEndDate] = useState(today);
 
-            // Table Filter States
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedRight, setSelectedRight] = useState('All');
             const [selectedFund, setSelectedFund] = useState('All');
             const [selectedClaimStatus, setSelectedClaimStatus] = useState('All');
 
-            // Pagination State
             const [currentPage, setCurrentPage] = useState(1);
             const itemsPerPage = 10;
 
@@ -127,7 +126,6 @@
                                 an: findKey(['an']),
                                 admitDate: findKey(['admit', 'แอดมิท', 'วันที่รับ']),
                                 dischargeDate: findKey(['discharge', 'จำหน่าย', 'dchdate']),
-                                dchSummaryDate: findKey(['dchargesum', 'สรุปชาร์จ', 'summarydate', 'date_sum']),
                                 type: findKey(['ประเภท', 'type']),
                                 right: findKey(['สิทธิ', 'right']),
                                 fund: findKey(['fund', 'กองทุน', 'ทุน', 'src_fund']),
@@ -144,43 +142,32 @@
                                 claimDate: findKey(['วันที่ส่งเคลม', 'claimdate', 'senddate', 'datesend']),
                                 claimAmt: findKey(['ยอดเคลม', 'ชดเชย', 'claimprice', 'reimburse', 'priceclaim', 'stm']),
                                 claimStatusText: findKey(['สถานะการเคลม', 'rept_status', 'claim_status_text', 'status_text']),
-                                claimError: findKey(['claimerror', 'error_code', 'deny', 'ติดc'])
+                                claimError: findKey(['claimerror', 'error_code', 'deny', 'ติดc']),
+                                staff: findKey(['staff', 'coder', 'ผู้ให้รหัส', 'คนโค้ด', 'ผู้บันทึก']) // New field
                             };
 
                             const formattedData = results.data.map(row => {
                                 const dischargeDateIso = parseDateToISO(row[colMap.dischargeDate]);
                                 const claimDateIso = parseDateToISO(row[colMap.claimDate]);
                                 const diagDateIso = parseDateToISO(row[colMap.diagDate]);
-                                const dchSummaryDateIso = parseDateToISO(row[colMap.dchSummaryDate]);
 
                                 const rawIsPull = (row[colMap.isPull] || '0').trim();
                                 
-                                // --- Workflow Lags ---
-                                const summaryLag = (dischargeDateIso && dchSummaryDateIso) 
-                                    ? calculateDayDiff(dischargeDateIso, dchSummaryDateIso) 
-                                    : null;
-
                                 const diagLag = (dischargeDateIso && diagDateIso) 
                                     ? calculateDayDiff(dischargeDateIso, diagDateIso) 
-                                    : null;
-
-                                // NEW: Coding Lag (Summary -> Diag)
-                                const codingLag = (dchSummaryDateIso && diagDateIso)
-                                    ? calculateDayDiff(dchSummaryDateIso, diagDateIso)
                                     : null;
 
                                 const claimLag = (rawIsPull === '1' && dischargeDateIso && claimDateIso) 
                                     ? calculateDayDiff(dischargeDateIso, claimDateIso) 
                                     : null;
 
-                                // --- Claim Status Logic ---
                                 const rightVal = (row[colMap.right] || 'Other').trim();
                                 const rightUpper = rightVal.toUpperCase();
                                 let claimStatusTextVal = (row[colMap.claimStatusText] || '-').trim();
                                 const hasExistingStatus = claimStatusTextVal !== '-' && claimStatusTextVal !== '';
 
                                 if (rightUpper === 'XXX') {
-                                    claimStatusTextVal = 'สิทธิชำระเงิน'; // Changed from ชำระเงินเอง
+                                    claimStatusTextVal = 'สิทธิชำระเงิน';
                                 } else if (['OFC', 'SSS', 'LGO', 'BKK','A9','SSI','NRD'].includes(rightUpper) && !hasExistingStatus) {
                                     claimStatusTextVal = 'รอนำเข้าไฟล์';
                                 }
@@ -223,18 +210,15 @@
                                     error: cleanIssueData(row[colMap.error]),
                                     warning: cleanIssueData(row[colMap.warning]),
                                     los: parseInt((row[colMap.admdate] || '0').toString().replace(/,/g, '')) || 0,
+                                    staff: (row[colMap.staff] || '').trim(), // Added Staff
                                     
                                     isClaimed: isClaimed,
                                     claimDateIso: claimDateIso,
                                     claimLagDays: claimLag,
                                     claimAmt: parseFloat((row[colMap.claimAmt] || '0').toString().replace(/,/g, '')) || 0,
 
-                                    // Doctor & Diag Data
-                                    dchSummaryDateIso: dchSummaryDateIso,
-                                    summaryLagDays: summaryLag,
                                     diagDateIso: diagDateIso,
                                     diagLagDays: diagLag,
-                                    codingLagDays: codingLag, // New
 
                                     claimStatusText: claimStatusTextVal,
                                     claimError: displayClaimError
@@ -317,16 +301,10 @@
                 const uncodedCount = pdxUncodedList.length;
                 const totalAdjRw = pdxCodedList.reduce((sum, item) => sum + item.adjRw, 0);
 
-                const summaryCompleteList = filtered.filter(item => item.dchSummaryDateIso !== null);
-                const summaryPendingList = filtered.filter(item => item.dchSummaryDateIso === null);
-                const summaryCompleteCount = summaryCompleteList.length;
-                const summaryPendingCount = summaryPendingList.length;
-
                 const hasIssue = (val) => val && val !== '' && val !== '-' && val !== '0';
                 const errorList = filtered.filter(item => hasIssue(item.error));
                 const warningList = filtered.filter(item => hasIssue(item.warning));
 
-                // Claim Analytics
                 const claimedList = filtered.filter(item => item.isClaimed);
                 const pendingClaimList = filtered.filter(item => !item.isClaimed);
                 const claimedCount = claimedList.length;
@@ -335,21 +313,10 @@
                 const totalLag = claimedList.reduce((sum, item) => sum + (item.claimLagDays || 0), 0);
                 const avgLagDays = claimedList.length > 0 ? (totalLag / claimedList.length).toFixed(1) : 0;
 
-                const summaryList = filtered.filter(item => item.summaryLagDays !== null);
-                const totalSummaryLag = summaryList.reduce((sum, item) => sum + item.summaryLagDays, 0);
-                const avgSummaryLag = summaryList.length > 0 ? (totalSummaryLag / summaryList.length).toFixed(1) : 0;
-
-                // Diag Lag (Discharge -> Diag)
                 const diagList = filtered.filter(item => item.diagLagDays !== null);
                 const totalDiagLag = diagList.reduce((sum, item) => sum + item.diagLagDays, 0);
                 const avgDiagLag = diagList.length > 0 ? (totalDiagLag / diagList.length).toFixed(1) : 0;
 
-                // NEW: Coding Lag (Summary -> Diag)
-                const codingProcessList = filtered.filter(item => item.codingLagDays !== null);
-                const totalCodingLag = codingProcessList.reduce((sum, item) => sum + item.codingLagDays, 0);
-                const avgCodingLag = codingProcessList.length > 0 ? (totalCodingLag / codingProcessList.length).toFixed(1) : 0;
-
-                // --- Claim Within Month vs Self Pay Logic ---
                 let claimWithinMonthCount = 0;
                 let claimLateMonthCount = 0;
                 let selfPayTotal = 0;
@@ -359,19 +326,17 @@
                 const now = new Date();
                 const currentMonthIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+                // --- Staff Performance Logic ---
+                const staffPerformance = {};
+
                 filtered.forEach(item => {
                     const rightUpper = item.right ? item.right.toUpperCase() : '';
                     
                     if (rightUpper === 'XXX') {
-                        // XXX Logic
                         selfPayTotal++;
-                        if (item.outstanding <= 0) {
-                            selfPayPaid++;
-                        } else {
-                            selfPayPending++; 
-                        }
+                        if (item.outstanding <= 0) selfPayPaid++;
+                        else selfPayPending++; 
                     } else {
-                        // Normal Rights Logic (Count for Claim Timing)
                         if (item.dischargeDateIso) {
                             const dMonth = item.dischargeDateIso.substring(0, 7);
                             if (item.isClaimed && item.claimDateIso) {
@@ -383,10 +348,35 @@
                             }
                         }
                     }
-                });
-                // --------------------------------------------
 
-                // Outcome Analysis (All rights EXCEPT XXX)
+                    // Process Staff Performance for Coding
+                    const sName = item.staff;
+                    if (sName && sName !== '-' && sName !== '0' && sName !== '') {
+                        if (!staffPerformance[sName]) staffPerformance[sName] = { within: 0, late: 0, total: 0 };
+                        staffPerformance[sName].total++;
+                        
+                        const dMonthStr = item.dischargeDateIso ? item.dischargeDateIso.substring(0, 7) : null;
+                        
+                        if (item.diagDateIso) {
+                            const codeMonthStr = item.diagDateIso.substring(0, 7);
+                            if (dMonthStr === codeMonthStr) {
+                                staffPerformance[sName].within++;
+                            } else {
+                                staffPerformance[sName].late++;
+                            }
+                        } else {
+                            if (dMonthStr && dMonthStr !== currentMonthIso) {
+                                staffPerformance[sName].late++;
+                            }
+                        }
+                    }
+                });
+
+                // Get top 2 staff by volume
+                const topStaff = Object.keys(staffPerformance)
+                    .sort((a,b) => staffPerformance[b].total - staffPerformance[a].total)
+                    .slice(0, 2);
+
                 const claimAnalysisList = filtered.filter(item => item.right.toUpperCase() !== 'XXX');
                 const claimAnalysisCount = claimAnalysisList.length;
                 let outcome = { transferred: 0, approved: 0, waitingTransfer: 0, processing: 0, errorReprocess: 0, others: 0 };
@@ -398,7 +388,7 @@
                     else if (status.includes('ตัดรอบเบิกจ่าย')) outcome.waitingTransfer++;
                     else if (status.includes('สปสช.รับข้อมูล')) outcome.processing++;
                     else if (status.includes('ปฏิเสธ') || status.includes('ติด C') || status.includes('ไม่อนุมัติ')) outcome.errorReprocess++;
-                    else outcome.others++; // This captures 'รอนำเข้าไฟล์', '-', '', etc.
+                    else outcome.others++; 
                 });
 
                 const claimOutcomeData = [
@@ -407,10 +397,9 @@
                     { name: 'รอโอนเงิน/ตัดรอบ', value: outcome.waitingTransfer, color: '#f59e0b' },
                     { name: 'อยู่ระหว่างพิจารณา', value: outcome.processing, color: '#3b82f6' }, 
                     { name: 'ต้องแก้ไข/ส่งใหม่', value: outcome.errorReprocess, color: '#ef4444' },
-                    { name: 'ยังไม่ส่งหรือรอนำเข้าไฟล์', value: outcome.others, color: '#94a3b8' } // New Label
+                    { name: 'ยังไม่ส่งหรือรอนำเข้าไฟล์', value: outcome.others, color: '#94a3b8' } 
                 ].filter(d => d.value > 0);
 
-                // Fund Analysis
                 const ucsOnlyData = filtered.filter(item => {
                     const isUCS = item.right && item.right.trim().toUpperCase() === 'UCS';
                     if (!isUCS) return false;
@@ -445,7 +434,6 @@
                 }, {});
                 const fundData = Object.keys(fundCount).map(k => ({ name: k, value: fundCount[k] }));
 
-                // Rights Breakdown
                 const rightsBreakdown = {
                     'UCS': { name: 'UCS', total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'emerald' },
                     'OFC': { name: 'OFC', total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'blue' },
@@ -453,7 +441,7 @@
                     'SSS': { name: 'SSS', total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'indigo' },
                     'A9':  { name: 'A9',  total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'violet' },
                     'Others': { name: 'อื่นๆ', total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'gray' },
-                    'XXX': { name: 'สิทธิชำระเงิน', total: 0, paid: 0, color: 'slate' } // Changed name
+                    'XXX': { name: 'สิทธิชำระเงิน', total: 0, paid: 0, color: 'slate' } 
                 };
 
                 const targetRights = ['UCS', 'OFC', 'LGO', 'SSS', 'A9', 'XXX'];
@@ -496,17 +484,13 @@
                     tableData: finalFiltered,
                     totalDischarged, totalNewAdmit, totalCost, totalOutstanding, totalClaimAmt, totalAdjRw,
                     codedCount, uncodedCount, pdxUncodedList,
-                    summaryCompleteCount, summaryPendingCount,
                     errorList, warningList,
                     claimedCount, pendingClaimCount, 
                     avgLagDays, 
-                    avgSummaryLag,
                     avgDiagLag,
-                    avgCodingLag, // New
+                    staffPerformance, topStaff, // New Staff Stats
                     claimWithinMonthCount, claimLateMonthCount,
-                    // Self Pay Stats
                     selfPayTotal, selfPayPaid, selfPayPending,
-                    // --------------
                     claimAnalysisCount, claimOutcomeData, outcomeCounts: outcome, 
                     fundData, rightsBreakdownList, depData,
                     uniqueRights, uniqueFunds, uniqueClaimStatuses,
@@ -524,14 +508,12 @@
                 const dataToExport = processedData.tableData.map(item => ({
                     'AN': item.an,
                     'วันที่จำหน่าย': item.dischargeDateDisplay,
-                    'วันที่สรุปชาร์จ': formatDateDisplay(item.dchSummaryDateIso),
-                    'Sum Lag (วัน)': item.summaryLagDays || '-',
                     'วันที่วินิจฉัย': formatDateDisplay(item.diagDateIso),
                     'Diag Lag (วัน)': item.diagLagDays || '-',
-                    'Coding Lag (วัน)': item.codingLagDays || '-',
                     'แผนก': item.department,
                     'วินิจฉัย (Pdx)': item.pdx,
                     'สถานะ Coding': item.codingStatus,
+                    'ผู้ให้รหัส (Staff)': item.staff,
                     'สิทธิ์': item.right,
                     'กองทุน': item.fund,
                     'สถานะส่งเคลม (Flag)': item.isClaimed ? 'ส่งแล้ว' : 'ยังไม่ส่ง',
@@ -661,87 +643,12 @@
                             </div>
                         </div>
 
-                        {/* Chart Row 1: Time & Lag Analytics (Updated with SPLIT CARDS) */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                            {/* Card 1: Doctor Summary Lag */}
-                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between relative">
-                                <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">แพทย์</span>
-                                <div>
-                                    <p className="text-sm text-slate-500 flex items-center gap-1"><FileSignature className="w-4 h-4"/> แพทย์สรุปชาร์จเฉลี่ย</p>
-                                    <div className="mt-2">
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-3xl font-bold text-purple-600">{processedData.avgSummaryLag}</span>
-                                            <span className="text-sm text-slate-500">วัน</span>
-                                        </div>
-                                        <p className="text-xs text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันสรุปชาร์จ</p>
-                                    </div>
-                                </div>
-                                <div className="bg-purple-50 p-4 rounded-full text-purple-500">
-                                    <FileSignature className="w-8 h-8" />
-                                </div>
-                            </div>
-
-                            {/* Card 2: Total Diagnosis Lag (New Split A) */}
-                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between relative">
-                                <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">เวชสถิติ</span>
-                                <div>
-                                    <p className="text-sm text-slate-500 flex items-center gap-1"><FileText className="w-4 h-4"/> ระยะเวลาแพทย์สรุป ถึง วินิจฉัย</p>
-                                    <div className="mt-2">
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-3xl font-bold text-teal-600">{processedData.avgCodingLag}</span>
-                                            <span className="text-sm text-slate-500">วัน</span>
-                                        </div>
-                                        <p className="text-xs text-slate-400 mt-1">นับจากวันที่แพทย์สรุป ถึง วันที่วินิจฉัย</p>
-                                    </div>
-                                </div>
-                                <div className="bg-teal-50 p-4 rounded-full text-teal-500">
-                                    <FileText className="w-8 h-8" />
-                                </div>
-                            </div>
-
-                            {/* Card 3: Coding Process Lag (New Split B) */}
-                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between relative">
-                                <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">เวชสถิติ</span>
-                                <div>
-                                    <p className="text-sm text-slate-500 flex items-center gap-1"><Stethoscope className="w-4 h-4"/> ระยะเวลาวินิจฉัยเฉลี่ย</p>
-                                    <div className="mt-2">
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-3xl font-bold text-cyan-600">{processedData.avgDiagLag}</span>
-                                            <span className="text-sm text-slate-500">วัน</span>
-                                        </div>
-                                        <p className="text-xs text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันที่วินิจฉัย</p>
-                                    </div>
-                                </div>
-                                <div className="bg-cyan-50 p-4 rounded-full text-cyan-500">
-                                    <Stethoscope className="w-8 h-8" />
-                                </div>
-                            </div>
-
-                            {/* Card 4: Claim Lag */}
-                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between relative">
-                                <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">งานประกัน(เคลม)</span>
-                                <div>
-                                    <p className="text-sm text-slate-500 flex items-center gap-1"><Clock className="w-4 h-4"/> ระยะเวลาส่งเคลมเฉลี่ย</p>
-                                    <div className="mt-2">
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-3xl font-bold text-indigo-600">{processedData.avgLagDays}</span>
-                                            <span className="text-sm text-slate-500">วัน</span>
-                                        </div>
-                                        <p className="text-xs text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันที่ส่งเคลม</p>
-                                    </div>
-                                </div>
-                                <div className="bg-indigo-50 p-4 rounded-full text-indigo-500">
-                                    <Activity className="w-8 h-8" />
-                                </div>
-                            </div>
-                        </div>
-
                         {/* --- Claim Analysis Section --- */}
                         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                              <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2"><CheckSquare className="w-5 h-5"/> วิเคราะห์ผลลัพธ์การเคลม (จาก {processedData.claimAnalysisCount} รายการ) <span className="text-xs font-normal text-slate-400">*ไม่รวมสิทธิชำระเงิน</span></h2>
                              
                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-                                {/* Stats Cards (Updated Grid) */}
+                                {/* Stats Cards */}
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:col-span-2">
                                     {/* 1. Transferred */}
                                     <div className="p-4 rounded-lg bg-emerald-100 border border-emerald-200 flex flex-col items-center text-center">
@@ -749,13 +656,13 @@
                                         <span className="text-sm text-emerald-800 font-bold mt-1">โอนเงินแล้ว</span>
                                     </div>
 
-                                    {/* 2. Approved (Not Transferred) */}
+                                    {/* 2. Approved */}
                                     <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100 flex flex-col items-center text-center">
                                         <span className="text-3xl font-bold text-emerald-500">{processedData.outcomeCounts.approved}</span>
                                         <span className="text-sm text-emerald-700 font-medium mt-1">อนุมัติ</span>
                                     </div>
                                     
-                                    {/* 3. Waiting Transfer/Cut-off */}
+                                    {/* 3. Waiting Transfer */}
                                     <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex flex-col items-center text-center">
                                         <span className="text-3xl font-bold text-amber-600">{processedData.outcomeCounts.waitingTransfer}</span>
                                         <span className="text-sm text-amber-800 font-medium mt-1">รอโอน/ตัดรอบ</span>
@@ -807,7 +714,79 @@
                              </div>
                         </div>
 
-                        {/* --- NEW SECTION: Monthly Claim Timing --- */}
+                        {/* --- NEW SECTION: Lag Times & Staff Performance --- */}
+                        <div className="mt-8">
+                            <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-indigo-600"/> สรุปเวลาทำงาน (Lag Time) และ ผลงานเวชสถิติ
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
+                                
+                                {/* Card: Average Diag Lag */}
+                                <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between xl:col-span-2 relative">
+                                    <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">เวชสถิติ</span>
+                                    <div>
+                                        <p className="text-sm text-slate-500 flex items-center gap-1"><Stethoscope className="w-4 h-4"/> ระยะเวลาวินิจฉัยเฉลี่ย</p>
+                                        <div className="mt-2">
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-3xl font-bold text-cyan-600">{processedData.avgDiagLag}</span>
+                                                <span className="text-sm text-slate-500">วัน</span>
+                                            </div>
+                                            <p className="text-xs text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันที่วินิจฉัย</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-cyan-50 p-4 rounded-full text-cyan-500">
+                                        <Stethoscope className="w-8 h-8" />
+                                    </div>
+                                </div>
+
+                                {/* Card: Average Claim Lag */}
+                                <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between xl:col-span-2 relative">
+                                    <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">งานประกัน(เคลม)</span>
+                                    <div>
+                                        <p className="text-sm text-slate-500 flex items-center gap-1"><Clock className="w-4 h-4"/> ระยะเวลาส่งเคลมเฉลี่ย</p>
+                                        <div className="mt-2">
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-3xl font-bold text-indigo-600">{processedData.avgLagDays}</span>
+                                                <span className="text-sm text-slate-500">วัน</span>
+                                            </div>
+                                            <p className="text-xs text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันที่ส่งเคลม</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-indigo-50 p-4 rounded-full text-indigo-500">
+                                        <Activity className="w-8 h-8" />
+                                    </div>
+                                </div>
+
+                                {/* Spacer for large screens to keep design aligned if needed, or dynamically flow. Since we have 6 cols, 2+2 = 4 cols used. We will let the staff cards flow next. */}
+                                
+                                {/* --- Dynamic Staff Performance Cards --- */}
+                                {processedData.topStaff.map((staffName, index) => (
+                                    <React.Fragment key={index}>
+                                        {/* Within Month Card */}
+                                        <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-400 flex flex-col justify-center xl:col-span-1">
+                                            <p className="text-xs text-slate-500 flex items-center gap-1 font-bold mb-1"><UserCircle className="w-4 h-4"/> {staffName}</p>
+                                            <p className="text-[10px] text-slate-400 mb-2">ให้รหัสภายในเดือน</p>
+                                            <div className="flex items-baseline gap-2 mt-auto">
+                                                <span className="text-2xl font-bold text-emerald-600">{processedData.staffPerformance[staffName].within}</span>
+                                                <span className="text-xs text-slate-500">เคส</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Late Month Card */}
+                                        <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-400 flex flex-col justify-center xl:col-span-1">
+                                            <p className="text-xs text-slate-500 flex items-center gap-1 font-bold mb-1"><UserCircle className="w-4 h-4"/> {staffName}</p>
+                                            <p className="text-[10px] text-slate-400 mb-2">ให้รหัสข้ามเดือน</p>
+                                            <div className="flex items-baseline gap-2 mt-auto">
+                                                <span className="text-2xl font-bold text-orange-500">{processedData.staffPerformance[staffName].late}</span>
+                                                <span className="text-xs text-slate-500">เคส</span>
+                                            </div>
+                                        </div>
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* --- Claim Within Month vs Self Pay --- */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             {/* Sent Within Month */}
                             <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between col-span-1 lg:col-span-2">
@@ -877,7 +856,6 @@
                                 </div>
                             </div>
                         </div>
-                        {/* ----------------------------------------- */}
 
                         {/* Rights Analysis Section (Grid Cards) */}
                         <div>
@@ -932,7 +910,7 @@
                             </div>
                         </div>
 
-                        {/* Chart Row 2: Fund Analysis */}
+                        {/* Fund & Quality Section */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Fund Analysis (Pie) */}
                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
@@ -940,7 +918,6 @@
                                     <Wallet className="text-emerald-500 w-5 h-5" /> สัดส่วนกองทุนย่อย (เฉพาะสิทธิ์ UCS + ผ่านแล้ว)
                                 </h3>
                                 <div className="flex flex-col md:flex-row items-center gap-6">
-                                    {/* Chart Side */}
                                     <div className="h-64 w-full md:w-1/2">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <PieChart>
@@ -960,8 +937,6 @@
                                             </PieChart>
                                         </ResponsiveContainer>
                                     </div>
-
-                                    {/* Legend Side (Custom HTML List) */}
                                     <div className="w-full md:w-1/2 max-h-64 overflow-y-auto pr-2 custom-list-scroll">
                                         <div className="space-y-3">
                                             {processedData.fundData.sort((a,b) => b.value - a.value).map((entry, index) => {
@@ -986,45 +961,12 @@
                                 </div>
                             </div>
 
-                            {/* Quality/Department Section moved here to fill space */}
+                            {/* Quality/Department Section */}
                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                                     <ClipboardList className="text-blue-500 w-5 h-5" /> ข้อมูลคุณภาพ
                                 </h3>
                                 <div className="space-y-4">
-
-                                    {/* Doctor Summary Status Block (NEW) */}
-                                    <div className="bg-slate-50 p-4 rounded-lg flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm text-slate-500">สถานะแพทย์สรุปชาร์จ</p>
-                                            <div className="flex items-center gap-4 mt-1">
-                                                <div className="text-purple-600 font-bold">
-                                                    {processedData.summaryCompleteCount} <span className="text-xs font-normal text-slate-400">Complete</span>
-                                                </div>
-                                                <div className="text-orange-500 font-bold">
-                                                    {processedData.summaryPendingCount} <span className="text-xs font-normal text-slate-400">Pending</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="h-10 w-10">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <PieChart>
-                                                    <Pie
-                                                        data={[{ val: processedData.summaryCompleteCount }, { val: processedData.summaryPendingCount }]}
-                                                        dataKey="val"
-                                                        outerRadius={20}
-                                                        innerRadius={10}
-                                                        stroke="none"
-                                                    >
-                                                        <Cell fill="#9333ea" /> {/* Purple for Summary */}
-                                                        <Cell fill="#f97316" /> {/* Orange for Pending */}
-                                                    </Pie>
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    </div>
-                                    {/* ---------------------------------- */}
-
                                     <div className="bg-slate-50 p-4 rounded-lg flex items-center justify-between">
                                         <div>
                                             <p className="text-sm text-slate-500">Coding Status</p>
@@ -1124,11 +1066,9 @@
                                         <tr className="text-slate-500 uppercase bg-slate-50/50">
                                             <th className="px-4 py-3 sticky left-0 bg-slate-50 z-10 shadow-r">AN</th>
                                             <th className="px-4 py-3">วันที่จำหน่าย</th>
-                                            <th className="px-4 py-3 text-purple-600">วันที่สรุปชาร์จ</th>
                                             <th className="px-4 py-3 text-cyan-600">วันที่วินิจฉัย</th>
                                             <th className="px-4 py-3">วันที่ส่ง</th>
-                                            <th className="px-4 py-3 text-center border-l border-slate-100">Sum Lag</th>
-                                            <th className="px-4 py-3 text-center">Diag Lag</th>
+                                            <th className="px-4 py-3 text-center border-l border-slate-100">Diag Lag</th>
                                             <th className="px-4 py-3 text-center">Claim Lag</th>
                                             <th className="px-4 py-3 border-l border-slate-100">แผนก</th>
                                             <th className="px-4 py-3">Pdx</th>
@@ -1150,7 +1090,6 @@
                                                 <tr key={idx} className="hover:bg-indigo-50/30 transition-colors">
                                                     <td className="px-4 py-2 font-medium sticky left-0 bg-white border-r border-slate-100">{item.an}</td>
                                                     <td className="px-4 py-2">{formatDateDisplay(item.dischargeDateIso)}</td>
-                                                    <td className="px-4 py-2 text-purple-700 font-medium">{formatDateDisplay(item.dchSummaryDateIso)}</td>
                                                     <td className="px-4 py-2 text-cyan-700">{formatDateDisplay(item.diagDateIso)}</td>
                                                     <td className="px-4 py-2 text-xs text-slate-600">
                                                         {item.isClaimed ? formatDateDisplay(item.claimDateIso) : '-'}
@@ -1158,11 +1097,6 @@
                                                     
                                                     {/* Lag Columns */}
                                                     <td className="px-4 py-2 text-center border-l border-slate-100">
-                                                        {item.summaryLagDays !== null ? (
-                                                            <span className={`font-mono font-medium ${item.summaryLagDays > 3 ? 'text-orange-500' : 'text-slate-600'}`}>{item.summaryLagDays}</span>
-                                                        ) : '-'}
-                                                    </td>
-                                                    <td className="px-4 py-2 text-center">
                                                         {item.diagLagDays !== null ? (
                                                             <span className={`font-mono font-medium ${item.diagLagDays > 7 ? 'text-orange-500' : 'text-slate-600'}`}>{item.diagLagDays}</span>
                                                         ) : '-'}
