@@ -1,4 +1,4 @@
-<!doctype html><html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IPD Dashboard: Real-time Monitor & Claim Analytics</title><script src="https://cdn.tailwindcss.com"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script><script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script><style>body{font-family:Sarabun,sans-serif;background-color:#f8fafc}.card-hover:hover{transform:translateY(-2px);box-shadow:0 10px 15px -3px rgba(0,0,0,.1)}input[type=radio]:checked+span{background-color:#4f46e5;color:#fff;font-weight:700;box-shadow:0 4px 6px -1px rgba(79,70,229,.2)}.spin-anim{animation:spin 1s linear infinite}@keyframes spin{100%{transform:rotate(360deg)}}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#f1f5f9}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:#94a3b8}.custom-list-scroll::-webkit-scrollbar{width:4px}</style><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet"><script src="https://unpkg.com/lucide@latest"></script><script defer="defer" src="/ipddashboard/static/js/main.67eeb4f2.js"></script><link href="/ipddashboard/static/css/main.f855e6bc.css" rel="stylesheet"></head><body><div id="root"></div><script type="text/babel">const { useState, useMemo, useEffect, useCallback } = React;
+<!doctype html><html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IPD Dashboard: Real-time Monitor & Claim Analytics</title><script src="https://cdn.tailwindcss.com"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script><script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script><style>body{font-family:Sarabun,sans-serif;background-color:#f8fafc}.card-hover:hover{transform:translateY(-2px);box-shadow:0 10px 15px -3px rgba(0,0,0,.1)}input[type=radio]:checked+span{background-color:#4f46e5;color:#fff;font-weight:700;box-shadow:0 4px 6px -1px rgba(79,70,229,.2)}.spin-anim{animation:spin 1s linear infinite}@keyframes spin{100%{transform:rotate(360deg)}}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#f1f5f9}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:#94a3b8}.custom-list-scroll::-webkit-scrollbar{width:4px}</style><script src="https://unpkg.com/lucide@latest"></script><script defer="defer" src="/ipddashboard/static/js/main.67eeb4f2.js"></script><link href="/ipddashboard/static/css/main.f855e6bc.css" rel="stylesheet"></head><body><div id="root"></div><script type="text/babel">const { useState, useMemo, useEffect, useCallback } = React;
         const RechartsLib = window.Recharts || {};
         const { 
             BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
@@ -31,9 +31,7 @@
         const Stethoscope = (props) => <IconBase {...props}><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.3.3 0 1 0 0 .6h1a1.4 1.4 0 0 1 1.4 1.4v5a5.4 5.4 0 0 1-5.4 5.4 5.4 5.4 0 0 1-5.4-5.4V4a1.4 1.4 0 0 1 1.4-1.4h1"/><path d="M11 15h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2Z"/></IconBase>;
         const CalendarCheck = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></IconBase>;
         const CalendarOff = (props) => <IconBase {...props}><path d="M4.2 4.2 19.8 19.8"/><rect width="18" height="18" x="3" y="4" rx="2" ry="2" opacity="0.5"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></IconBase>;
-        const FileSignature = (props) => <IconBase {...props}><path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L9 18c-.2.5-.5 1-1 1.5Z"/><path d="M14 2v6h6"/><path d="m18 13-1.5-1.5"/><path d="M12.5 16a2.2 2.2 0 0 0-1.8 1.1l-1 2.3 2.6-.9a2 2 0 0 0 1.2-1.3l2.8-6.6-1.5-1.5Z"/></IconBase>;
         const Coins = (props) => <IconBase {...props}><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7 .71-2.82 2.82"/></IconBase>;
-        const FileQuestion = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 10.3c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2"/><path d="M12 17h.01"/></IconBase>;
         const UserCircle = (props) => <IconBase {...props}><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></IconBase>;
 
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROXMFts88KtV4W3wQvWddkGF4bbAF8NQ9Wwybfk9oob8S7cANi6dLl1Z4Gf38JVxlVR6F36Yh4a6Kk/pub?gid=0&single=true&output=csv';
@@ -143,7 +141,7 @@
                                 claimAmt: findKey(['ยอดเคลม', 'ชดเชย', 'claimprice', 'reimburse', 'priceclaim', 'stm']),
                                 claimStatusText: findKey(['สถานะการเคลม', 'rept_status', 'claim_status_text', 'status_text']),
                                 claimError: findKey(['claimerror', 'error_code', 'deny', 'ติดc']),
-                                staff: findKey(['staff', 'coder', 'ผู้ให้รหัส', 'คนโค้ด', 'ผู้บันทึก']) // New field
+                                staff: findKey(['staff', 'coder', 'ผู้ให้รหัส', 'คนโค้ด', 'ผู้บันทึก']) 
                             };
 
                             const formattedData = results.data.map(row => {
@@ -210,7 +208,7 @@
                                     error: cleanIssueData(row[colMap.error]),
                                     warning: cleanIssueData(row[colMap.warning]),
                                     los: parseInt((row[colMap.admdate] || '0').toString().replace(/,/g, '')) || 0,
-                                    staff: (row[colMap.staff] || '').trim(), // Added Staff
+                                    staff: (row[colMap.staff] || '').trim(), 
                                     
                                     isClaimed: isClaimed,
                                     claimDateIso: claimDateIso,
@@ -326,8 +324,11 @@
                 const now = new Date();
                 const currentMonthIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-                // --- Staff Performance Logic ---
-                const staffPerformance = {};
+                // --- Staff Performance Logic (Fixed: ausumi, sonthaya) ---
+                const staffStats = {
+                    ausumi: { name: 'กัลย์พิชศา', key: 'ausumi', within: 0, late: 0, total: 0 },
+                    sonthaya: { name: 'สนธยา', key: 'sonthaya', within: 0, late: 0, total: 0 }
+                };
 
                 filtered.forEach(item => {
                     const rightUpper = item.right ? item.right.toUpperCase() : '';
@@ -349,33 +350,30 @@
                         }
                     }
 
-                    // Process Staff Performance for Coding
-                    const sName = item.staff;
-                    if (sName && sName !== '-' && sName !== '0' && sName !== '') {
-                        if (!staffPerformance[sName]) staffPerformance[sName] = { within: 0, late: 0, total: 0 };
-                        staffPerformance[sName].total++;
-                        
+                    // Process Staff Performance
+                    const rawStaff = (item.staff || '').trim().toLowerCase();
+                    let targetStaff = null;
+                    if (rawStaff.includes('ausumi') || rawStaff.includes('กัลย์พิชศา')) targetStaff = 'ausumi';
+                    else if (rawStaff.includes('sonthaya') || rawStaff.includes('สนธยา')) targetStaff = 'sonthaya';
+
+                    if (targetStaff) {
+                        staffStats[targetStaff].total++;
                         const dMonthStr = item.dischargeDateIso ? item.dischargeDateIso.substring(0, 7) : null;
                         
                         if (item.diagDateIso) {
                             const codeMonthStr = item.diagDateIso.substring(0, 7);
                             if (dMonthStr === codeMonthStr) {
-                                staffPerformance[sName].within++;
+                                staffStats[targetStaff].within++;
                             } else {
-                                staffPerformance[sName].late++;
+                                staffStats[targetStaff].late++;
                             }
                         } else {
                             if (dMonthStr && dMonthStr !== currentMonthIso) {
-                                staffPerformance[sName].late++;
+                                staffStats[targetStaff].late++;
                             }
                         }
                     }
                 });
-
-                // Get top 2 staff by volume
-                const topStaff = Object.keys(staffPerformance)
-                    .sort((a,b) => staffPerformance[b].total - staffPerformance[a].total)
-                    .slice(0, 2);
 
                 const claimAnalysisList = filtered.filter(item => item.right.toUpperCase() !== 'XXX');
                 const claimAnalysisCount = claimAnalysisList.length;
@@ -488,7 +486,7 @@
                     claimedCount, pendingClaimCount, 
                     avgLagDays, 
                     avgDiagLag,
-                    staffPerformance, topStaff, // New Staff Stats
+                    staffStats, // Using strictly mapped staff stats
                     claimWithinMonthCount, claimLateMonthCount,
                     selfPayTotal, selfPayPaid, selfPayPending,
                     claimAnalysisCount, claimOutcomeData, outcomeCounts: outcome, 
@@ -648,46 +646,33 @@
                              <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2"><CheckSquare className="w-5 h-5"/> วิเคราะห์ผลลัพธ์การเคลม (จาก {processedData.claimAnalysisCount} รายการ) <span className="text-xs font-normal text-slate-400">*ไม่รวมสิทธิชำระเงิน</span></h2>
                              
                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-                                {/* Stats Cards */}
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:col-span-2">
-                                    {/* 1. Transferred */}
                                     <div className="p-4 rounded-lg bg-emerald-100 border border-emerald-200 flex flex-col items-center text-center">
                                         <span className="text-3xl font-bold text-emerald-700">{processedData.outcomeCounts.transferred}</span>
                                         <span className="text-sm text-emerald-800 font-bold mt-1">โอนเงินแล้ว</span>
                                     </div>
-
-                                    {/* 2. Approved */}
                                     <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100 flex flex-col items-center text-center">
                                         <span className="text-3xl font-bold text-emerald-500">{processedData.outcomeCounts.approved}</span>
                                         <span className="text-sm text-emerald-700 font-medium mt-1">อนุมัติ</span>
                                     </div>
-                                    
-                                    {/* 3. Waiting Transfer */}
                                     <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex flex-col items-center text-center">
                                         <span className="text-3xl font-bold text-amber-600">{processedData.outcomeCounts.waitingTransfer}</span>
                                         <span className="text-sm text-amber-800 font-medium mt-1">รอโอน/ตัดรอบ</span>
                                     </div>
-
-                                    {/* 4. Processing */}
                                     <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 flex flex-col items-center text-center">
                                         <span className="text-3xl font-bold text-blue-600">{processedData.outcomeCounts.processing}</span>
                                         <span className="text-sm text-blue-800 font-medium mt-1 flex items-center justify-center gap-1"><FileClock size={14}/> อยู่ระหว่างพิจารณา</span>
                                     </div>
-
-                                    {/* 5. Error/Reprocess */}
                                     <div className="p-4 rounded-lg bg-red-50 border border-red-100 flex flex-col items-center text-center">
                                         <span className="text-3xl font-bold text-red-600">{processedData.outcomeCounts.errorReprocess}</span>
                                         <span className="text-sm text-red-800 font-medium mt-1 flex items-center justify-center gap-1"><XOctagon size={14}/> ต้องแก้ไข / ส่งใหม่</span>
                                     </div>
-
-                                    {/* 6. Others */}
                                     <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 flex flex-col items-center text-center">
                                         <span className="text-3xl font-bold text-slate-600">{processedData.outcomeCounts.others}</span>
                                         <span className="text-sm text-slate-600 font-medium mt-1">ยังไม่ส่ง/รอนำเข้า</span>
                                     </div>
                                 </div>
 
-                                {/* Donut Chart */}
                                 <div className="h-48 w-full relative">
                                     {processedData.claimAnalysisCount > 0 ? (
                                         <ResponsiveContainer width="100%" height="100%">
@@ -719,76 +704,69 @@
                             <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2">
                                 <Clock className="w-5 h-5 text-indigo-600"/> สรุปเวลาทำงาน (Lag Time) และ ผลงานเวชสถิติ
                             </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-                                
-                                {/* Card: Average Diag Lag */}
-                                <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between xl:col-span-2 relative">
-                                    <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">เวชสถิติ</span>
-                                    <div>
-                                        <p className="text-sm text-slate-500 flex items-center gap-1"><Stethoscope className="w-4 h-4"/> ระยะเวลาวินิจฉัยเฉลี่ย</p>
-                                        <div className="mt-2">
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-3xl font-bold text-cyan-600">{processedData.avgDiagLag}</span>
-                                                <span className="text-sm text-slate-500">วัน</span>
+                            
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                {/* Left Column: Lag Times */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {/* Card: Average Diag Lag */}
+                                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between relative h-full">
+                                        <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">เวชสถิติ</span>
+                                        <div>
+                                            <p className="text-sm text-slate-500 flex items-center gap-1"><Stethoscope className="w-4 h-4"/> เวลาวินิจฉัยเฉลี่ย</p>
+                                            <div className="mt-2">
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-3xl font-bold text-cyan-600">{processedData.avgDiagLag}</span>
+                                                    <span className="text-sm text-slate-500">วัน</span>
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันวินิจฉัย</p>
                                             </div>
-                                            <p className="text-xs text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันที่วินิจฉัย</p>
                                         </div>
                                     </div>
-                                    <div className="bg-cyan-50 p-4 rounded-full text-cyan-500">
-                                        <Stethoscope className="w-8 h-8" />
+
+                                    {/* Card: Average Claim Lag */}
+                                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between relative h-full">
+                                        <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">งานประกัน(เคลม)</span>
+                                        <div>
+                                            <p className="text-sm text-slate-500 flex items-center gap-1"><Activity className="w-4 h-4"/> เวลาส่งเคลมเฉลี่ย</p>
+                                            <div className="mt-2">
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-3xl font-bold text-indigo-600">{processedData.avgLagDays}</span>
+                                                    <span className="text-sm text-slate-500">วัน</span>
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันส่งเคลม</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Card: Average Claim Lag */}
-                                <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between xl:col-span-2 relative">
-                                    <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">งานประกัน(เคลม)</span>
-                                    <div>
-                                        <p className="text-sm text-slate-500 flex items-center gap-1"><Clock className="w-4 h-4"/> ระยะเวลาส่งเคลมเฉลี่ย</p>
-                                        <div className="mt-2">
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-3xl font-bold text-indigo-600">{processedData.avgLagDays}</span>
-                                                <span className="text-sm text-slate-500">วัน</span>
+                                {/* Right Column: Specific Staff Performance */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {['ausumi', 'sonthaya'].map((staffKey) => {
+                                        const staff = processedData.staffStats[staffKey];
+                                        return (
+                                            <div key={staffKey} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-full flex flex-col">
+                                                <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
+                                                    <UserCircle className="w-5 h-5 text-indigo-500" /> {staff.name}
+                                                </h3>
+                                                <div className="grid grid-cols-2 gap-3 flex-1">
+                                                    <div className="bg-emerald-50 p-3 rounded-lg flex flex-col items-center justify-center text-center">
+                                                        <p className="text-xs text-emerald-800 mb-1 font-medium">ทันในเดือน</p>
+                                                        <p className="text-2xl font-bold text-emerald-600">{staff.within}</p>
+                                                    </div>
+                                                    <div className="bg-orange-50 p-3 rounded-lg flex flex-col items-center justify-center text-center">
+                                                        <p className="text-xs text-orange-800 mb-1 font-medium">ไม่ทัน (ข้ามเดือน)</p>
+                                                        <p className="text-2xl font-bold text-orange-500">{staff.late}</p>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <p className="text-xs text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันที่ส่งเคลม</p>
-                                        </div>
-                                    </div>
-                                    <div className="bg-indigo-50 p-4 rounded-full text-indigo-500">
-                                        <Activity className="w-8 h-8" />
-                                    </div>
+                                        );
+                                    })}
                                 </div>
-
-                                {/* Spacer for large screens to keep design aligned if needed, or dynamically flow. Since we have 6 cols, 2+2 = 4 cols used. We will let the staff cards flow next. */}
-                                
-                                {/* --- Dynamic Staff Performance Cards --- */}
-                                {processedData.topStaff.map((staffName, index) => (
-                                    <React.Fragment key={index}>
-                                        {/* Within Month Card */}
-                                        <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-400 flex flex-col justify-center xl:col-span-1">
-                                            <p className="text-xs text-slate-500 flex items-center gap-1 font-bold mb-1"><UserCircle className="w-4 h-4"/> {staffName}</p>
-                                            <p className="text-[10px] text-slate-400 mb-2">ให้รหัสภายในเดือน</p>
-                                            <div className="flex items-baseline gap-2 mt-auto">
-                                                <span className="text-2xl font-bold text-emerald-600">{processedData.staffPerformance[staffName].within}</span>
-                                                <span className="text-xs text-slate-500">เคส</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Late Month Card */}
-                                        <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-400 flex flex-col justify-center xl:col-span-1">
-                                            <p className="text-xs text-slate-500 flex items-center gap-1 font-bold mb-1"><UserCircle className="w-4 h-4"/> {staffName}</p>
-                                            <p className="text-[10px] text-slate-400 mb-2">ให้รหัสข้ามเดือน</p>
-                                            <div className="flex items-baseline gap-2 mt-auto">
-                                                <span className="text-2xl font-bold text-orange-500">{processedData.staffPerformance[staffName].late}</span>
-                                                <span className="text-xs text-slate-500">เคส</span>
-                                            </div>
-                                        </div>
-                                    </React.Fragment>
-                                ))}
                             </div>
                         </div>
 
                         {/* --- Claim Within Month vs Self Pay --- */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {/* Sent Within Month */}
                             <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between col-span-1 lg:col-span-2">
                                 <div>
                                     <p className="text-sm text-slate-500 flex items-center gap-1"><CalendarCheck className="w-4 h-4"/> ส่งเคลมภายในเดือน (ไม่รวมสิทธิชำระเงิน)</p>
@@ -804,8 +782,6 @@
                                     <CalendarCheck className="w-8 h-8" />
                                 </div>
                             </div>
-
-                            {/* Sent Late (Not Within Month) */}
                             <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between col-span-1 lg:col-span-2">
                                 <div>
                                     <p className="text-sm text-slate-500 flex items-center gap-1"><CalendarOff className="w-4 h-4"/> ส่งเคลมไม่ทันภายในเดือน (ไม่รวมสิทธิชำระเงิน)</p>
@@ -821,8 +797,6 @@
                                     <CalendarOff className="w-8 h-8" />
                                 </div>
                             </div>
-
-                            {/* Self Pay Paid */}
                             <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between col-span-1 lg:col-span-2">
                                 <div>
                                     <p className="text-sm text-slate-500 flex items-center gap-1"><Coins className="w-4 h-4"/> สิทธิชำระเงิน ชำระครบ</p>
@@ -838,8 +812,6 @@
                                     <CheckCircle2 className="w-8 h-8" />
                                 </div>
                             </div>
-
-                            {/* Self Pay Pending */}
                             <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between col-span-1 lg:col-span-2">
                                 <div>
                                     <p className="text-sm text-slate-500 flex items-center gap-1"><AlertTriangle className="w-4 h-4"/> สิทธิชำระเงิน ค้างชำระ</p>
@@ -857,7 +829,7 @@
                             </div>
                         </div>
 
-                        {/* Rights Analysis Section (Grid Cards) */}
+                        {/* Rights Analysis Section */}
                         <div>
                             <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-slate-700">
                                 <FileText className="text-blue-500 w-5 h-5" /> สถานะการส่งเคลมแยกรายสิทธิ์
@@ -865,14 +837,12 @@
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
                                 {processedData.rightsBreakdownList.map((rightData, idx) => {
                                     const percent = rightData.total > 0 ? ((rightData.claimed / rightData.total) * 100).toFixed(0) : 0;
-                                    
                                     return (
                                         <div key={idx} className="bg-white p-3 rounded-lg shadow-sm border border-slate-200 flex flex-col">
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className={`text-sm font-bold px-2 py-0.5 rounded bg-${rightData.color}-100 text-${rightData.color}-700`}>{rightData.name}</span>
                                                 <span className="text-xs text-slate-400">{rightData.total} คน</span>
                                             </div>
-                                            
                                             {rightData.name === 'สิทธิชำระเงิน' ? (
                                                 <div className="mt-auto">
                                                     <div className="text-center py-2 bg-slate-50 rounded text-xs text-slate-500 font-medium">
@@ -886,21 +856,11 @@
                                                         <span>{rightData.claimed}</span>
                                                     </div>
                                                     <div className="w-full bg-slate-100 rounded-full h-1.5">
-                                                        <div 
-                                                            className="bg-emerald-500 h-1.5 rounded-full" 
-                                                            style={{ width: `${percent}%` }}
-                                                        ></div>
+                                                        <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${percent}%` }}></div>
                                                     </div>
-                                                    
                                                     <div className="pt-2 border-t border-slate-100 space-y-1 text-[10px] text-slate-500">
-                                                        <div className="flex justify-between">
-                                                            <span>รอ REP</span> 
-                                                            <span>{rightData.wait}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-slate-400">
-                                                            <span>ยังไม่ส่ง</span> 
-                                                            <span>{rightData.unclaimed}</span>
-                                                        </div>
+                                                        <div className="flex justify-between"><span>รอ REP</span> <span>{rightData.wait}</span></div>
+                                                        <div className="flex justify-between text-slate-400"><span>ยังไม่ส่ง</span> <span>{rightData.unclaimed}</span></div>
                                                     </div>
                                                 </div>
                                             )}
@@ -912,7 +872,6 @@
 
                         {/* Fund & Quality Section */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Fund Analysis (Pie) */}
                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                                     <Wallet className="text-emerald-500 w-5 h-5" /> สัดส่วนกองทุนย่อย (เฉพาะสิทธิ์ UCS + ผ่านแล้ว)
@@ -921,17 +880,8 @@
                                     <div className="h-64 w-full md:w-1/2">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <PieChart>
-                                                <Pie
-                                                    data={processedData.fundData}
-                                                    dataKey="value"
-                                                    outerRadius={80}
-                                                    innerRadius={60}
-                                                    paddingAngle={2}
-                                                    label={false} 
-                                                >
-                                                    {processedData.fundData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                    ))}
+                                                <Pie data={processedData.fundData} dataKey="value" outerRadius={80} innerRadius={60} paddingAngle={2} label={false} >
+                                                    {processedData.fundData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                                                 </Pie>
                                                 <Tooltip formatter={(value, name, props) => [value.toLocaleString(), name]} />
                                             </PieChart>
@@ -942,7 +892,6 @@
                                             {processedData.fundData.sort((a,b) => b.value - a.value).map((entry, index) => {
                                                 const sumFunds = processedData.fundData.reduce((acc, cur) => acc + cur.value, 0);
                                                 const p = sumFunds > 0 ? ((entry.value / sumFunds) * 100).toFixed(1) : 0;
-                                                
                                                 return (
                                                     <div key={index} className="flex items-start justify-between text-sm border-b border-slate-50 pb-2 last:border-0">
                                                         <div className="flex items-start gap-2">
@@ -961,7 +910,6 @@
                                 </div>
                             </div>
 
-                            {/* Quality/Department Section */}
                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                                     <ClipboardList className="text-blue-500 w-5 h-5" /> ข้อมูลคุณภาพ
@@ -979,7 +927,6 @@
                                             <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={[{val: processedData.codedCount}, {val: processedData.uncodedCount}]} dataKey="val" outerRadius={20} innerRadius={10} stroke="none"><Cell fill="#10b981"/> <Cell fill="#f97316"/></Pie></PieChart></ResponsiveContainer>
                                         </div>
                                     </div>
-
                                     <div className="bg-slate-50 p-4 rounded-lg">
                                         <div className="flex justify-between items-start mb-2"><p className="text-sm text-slate-500">Errors / Warnings (Coding)</p>{processedData.errorList.length === 0 ? <CheckCircle2 className="text-emerald-500 w-4 h-4"/> : <AlertTriangle className="text-red-500 w-4 h-4"/>}</div>
                                         <div className="flex gap-4">
@@ -987,7 +934,6 @@
                                             <div><span className="text-xl font-bold text-yellow-600">{processedData.warningList.length}</span><span className="text-[10px] text-slate-400 block">Warnings</span></div>
                                         </div>
                                     </div>
-
                                     <div className="bg-slate-50 p-4 rounded-lg">
                                         <p className="text-sm text-slate-500 mb-1">อันดับผู้ป่วยสูงที่สุด</p>
                                         {processedData.depData.length > 0 ? (
@@ -1004,57 +950,30 @@
                                 <h3 className="font-bold text-slate-700 whitespace-nowrap">
                                     ข้อมูลผู้ป่วย ({processedData.tableData.length})
                                 </h3>
-                                
                                 <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                                     <div className="flex items-center bg-white border border-slate-300 rounded px-2 py-1.5 flex-1 md:flex-none">
                                         <Search size={16} className="text-slate-400 mr-2" />
-                                        <input 
-                                            type="text" 
-                                            placeholder="ค้นหาชื่อ / AN..." 
-                                            className="bg-transparent outline-none text-sm w-full md:w-32"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                        />
+                                        <input type="text" placeholder="ค้นหาชื่อ / AN..." className="bg-transparent outline-none text-sm w-full md:w-32" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                                     </div>
-                                    
                                     <div className="flex items-center gap-1">
                                         <span className="text-xs text-slate-500">สิทธิ์:</span>
-                                        <select 
-                                            className="border rounded text-sm py-1 px-2 outline-none max-w-[120px]"
-                                            value={selectedRight}
-                                            onChange={(e) => setSelectedRight(e.target.value)}
-                                        >
+                                        <select className="border rounded text-sm py-1 px-2 outline-none max-w-[120px]" value={selectedRight} onChange={(e) => setSelectedRight(e.target.value)}>
                                             {processedData.uniqueRights.map(r => <option key={r} value={r}>{r}</option>)}
                                         </select>
                                     </div>
-
                                     <div className="flex items-center gap-1">
                                         <span className="text-xs text-slate-500">กองทุน:</span>
-                                        <select 
-                                            className="border rounded text-sm py-1 px-2 outline-none max-w-[120px]"
-                                            value={selectedFund}
-                                            onChange={(e) => setSelectedFund(e.target.value)}
-                                        >
+                                        <select className="border rounded text-sm py-1 px-2 outline-none max-w-[120px]" value={selectedFund} onChange={(e) => setSelectedFund(e.target.value)}>
                                             {processedData.uniqueFunds.map(f => <option key={f} value={f}>{f}</option>)}
                                         </select>
                                     </div>
-
-                                    {/* Claim Status Filter */}
                                     <div className="flex items-center gap-1">
                                         <span className="text-xs text-slate-500">สถานะ:</span>
-                                        <select 
-                                            className="border rounded text-sm py-1 px-2 outline-none max-w-[120px]"
-                                            value={selectedClaimStatus}
-                                            onChange={(e) => setSelectedClaimStatus(e.target.value)}
-                                        >
+                                        <select className="border rounded text-sm py-1 px-2 outline-none max-w-[120px]" value={selectedClaimStatus} onChange={(e) => setSelectedClaimStatus(e.target.value)}>
                                             {processedData.uniqueClaimStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     </div>
-
-                                    <button 
-                                        onClick={exportToExcel}
-                                        className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm shadow transition ml-auto md:ml-2"
-                                    >
+                                    <button onClick={exportToExcel} className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm shadow transition ml-auto md:ml-2">
                                         <Download size={14} /> Excel
                                     </button>
                                 </div>
@@ -1091,20 +1010,13 @@
                                                     <td className="px-4 py-2 font-medium sticky left-0 bg-white border-r border-slate-100">{item.an}</td>
                                                     <td className="px-4 py-2">{formatDateDisplay(item.dischargeDateIso)}</td>
                                                     <td className="px-4 py-2 text-cyan-700">{formatDateDisplay(item.diagDateIso)}</td>
-                                                    <td className="px-4 py-2 text-xs text-slate-600">
-                                                        {item.isClaimed ? formatDateDisplay(item.claimDateIso) : '-'}
-                                                    </td>
+                                                    <td className="px-4 py-2 text-xs text-slate-600">{item.isClaimed ? formatDateDisplay(item.claimDateIso) : '-'}</td>
                                                     
-                                                    {/* Lag Columns */}
                                                     <td className="px-4 py-2 text-center border-l border-slate-100">
-                                                        {item.diagLagDays !== null ? (
-                                                            <span className={`font-mono font-medium ${item.diagLagDays > 7 ? 'text-orange-500' : 'text-slate-600'}`}>{item.diagLagDays}</span>
-                                                        ) : '-'}
+                                                        {item.diagLagDays !== null ? (<span className={`font-mono font-medium ${item.diagLagDays > 7 ? 'text-orange-500' : 'text-slate-600'}`}>{item.diagLagDays}</span>) : '-'}
                                                     </td>
                                                     <td className="px-4 py-2 text-center">
-                                                        {item.claimLagDays !== null ? (
-                                                            <span className={`font-mono font-medium ${item.claimLagDays > 30 ? 'text-red-500' : 'text-slate-600'}`}>{item.claimLagDays}</span>
-                                                        ) : '-'}
+                                                        {item.claimLagDays !== null ? (<span className={`font-mono font-medium ${item.claimLagDays > 30 ? 'text-red-500' : 'text-slate-600'}`}>{item.claimLagDays}</span>) : '-'}
                                                     </td>
 
                                                     <td className="px-4 py-2 border-l border-slate-100">{item.department}</td>
@@ -1148,29 +1060,17 @@
                                 </table>
                              </div>
 
-                             {/* Pagination Controls */}
+                             {/* Pagination */}
                              <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
                                 <span className="text-xs text-slate-500">
                                     แสดง {paginatedData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} ถึง {Math.min(currentPage * itemsPerPage, processedData.tableData.length)} จากทั้งหมด {processedData.tableData.length} รายการ
                                 </span>
                                 <div className="flex items-center gap-2">
-                                    <button 
-                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                        disabled={currentPage === 1}
-                                        className="p-2 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
+                                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed">
                                         <ChevronLeft size={16}/>
                                     </button>
-                                    
-                                    <span className="text-sm font-medium text-slate-700 px-2">
-                                        หน้าที่ {currentPage} / {totalPages || 1}
-                                    </span>
-
-                                    <button 
-                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                        disabled={currentPage >= totalPages}
-                                        className="p-2 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
+                                    <span className="text-sm font-medium text-slate-700 px-2">หน้าที่ {currentPage} / {totalPages || 1}</span>
+                                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="p-2 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed">
                                         <ChevronRight size={16}/>
                                     </button>
                                 </div>
