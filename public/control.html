@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ควบคุมเวลา Tablet</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; padding-top: 40px; }
+        .btn-xl { padding: 15px 20px; font-size: 1.2rem; margin-bottom: 10px; width: 100%; }
+        .status-box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; margin-bottom: 20px; }
+        .text-big { font-size: 2rem; font-weight: bold; }
+        .locked { color: #dc3545; }
+        .unlocked { color: #198754; }
+    </style>
+</head>
+<body>
+
+<div class="container" style="max-width: 500px;">
+    
+    <div class="status-box">
+        <h5 class="text-muted">สถานะปัจจุบัน</h5>
+        <div id="statusText" class="text-big locked">...</div>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-4">
+            <button onclick="sendAction('set_time', 60)" class="btn btn-primary btn-xl">
+                1 ชม.
+            </button>
+        </div>
+        <div class="col-4">
+            <button onclick="sendAction('set_time', 120)" class="btn btn-primary btn-xl">
+                2 ชม.
+            </button>
+        </div>
+        <div class="col-4">
+            <button onclick="sendAction('set_time', 180)" class="btn btn-primary btn-xl">
+                3 ชม.
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-2 mt-1">
+        <div class="col-12">
+            <button onclick="sendAction('add_time', 30)" class="btn btn-warning btn-xl text-dark">
+                ➕ เพิ่มเวลา 30 นาที
+            </button>
+        </div>
+        <div class="col-12">
+            <button onclick="sendAction('lock', 0)" class="btn btn-danger btn-xl">
+                🔒 ล็อคทันที
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // **********************************************
+    // แก้ URL ให้ตรงกับที่อยู่ไฟล์ api.php ของคุณ
+    // **********************************************
+    const API_URL = 'api.php'; 
+
+    async function refreshStatus() {
+        try {
+            // เรียกดูสถานะ (ส่ง random เพื่อแก้ cache)
+            const res = await fetch(`${API_URL}?action=get_status&r=${Math.random()}`);
+            const data = await res.json();
+            
+            const statusDiv = document.getElementById('statusText');
+            const timeSpan = document.getElementById('timeText');
+
+            if (data.is_locked) {
+                statusDiv.innerText = "LOCKED";
+                statusDiv.className = "text-big locked";
+            } else {
+                statusDiv.innerText = "UNLOCKED";
+                statusDiv.className = "text-big unlocked";
+            }
+            timeSpan.innerText = data.minutes;
+
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function sendAction(action, minutes) {
+        // อนิเมชั่นปุ่มกดเล็กน้อย
+        if(!confirm("ยืนยันคำสั่ง?")) return;
+
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ action: action, minutes: minutes })
+            });
+            const result = await res.json();
+            
+            if(result.status === 'ok') {
+                // เรียกดูสถานะใหม่ทันที
+                refreshStatus();
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (err) {
+            alert('ติดต่อ Server ไม่ได้');
+        }
+    }
+
+    // เริ่มทำงาน
+    refreshStatus();
+    setInterval(refreshStatus, 3000); // รีเฟรชหน้าจอตลอดเวลาเพื่อดูว่าเวลาลดลงไหม
+
+</script>
+
+</body>
+</html>
