@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPD Dashboard: Real-time Service Monitor</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f0fdfa; } /* สีพื้นหลังโทนเขียวอ่อนสำหรับ OPD */
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        input[type="radio"]:checked + span {
+            background-color: #0d9488; /* Teal-600 */
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2);
+        }
+        .spin-anim { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect, useCallback } = React;
+        const RechartsLib = window.Recharts || {};
+        const { 
+            BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
+            PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
+        } = RechartsLib;
+
+        // --- Icons Helper ---
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
+        );
+        // Icons for OPD context
+        const Users = (props) => <IconBase {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></IconBase>;
+        const Activity = (props) => <IconBase {...props}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></IconBase>;
+        const DollarSign = (props) => <IconBase {...props}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></IconBase>;
+        const Clock = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconBase>;
+        const Stethoscope = (props) => <IconBase {...props}><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.3.3 0 1 0 0 .6h1a1.4 1.4 0 0 1 1.4 1.4v5a5.4 5.4 0 0 1-5.4 5.4 5.4 5.4 0 0 1-5.4-5.4V4a1.4 1.4 0 0 1 1.4-1.4h1"/><path d="M11 15h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2Z"/></IconBase>;
+        const Calendar = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></IconBase>;
+        const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></IconBase>;
+        const Download = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></IconBase>;
+        const RefreshCw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></IconBase>;
+        const Building = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/></IconBase>;
+        const ChevronLeft = (props) => <IconBase {...props}><polyline points="15 18 9 12 15 6"/></IconBase>;
+        const ChevronRight = (props) => <IconBase {...props}><polyline points="9 18 15 12 9 6"/></IconBase>;
+
+        // ** IMPORTANT: REPLACE THIS URL WITH YOUR PUBLISHED CSV URL **
+        // Using the export?format=csv trick for the provided Sheet ID
+        const SHEET_ID = '1aPO3N4odsuc2UxFxqGzyYHGj1_TYCnWItfbP0NSwGIU';
+        const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+
+        // --- Helpers ---
+        const parseDateToISO = (dateStr) => {
+            if (!dateStr) return null;
+            let cleanDateStr = dateStr.toString().trim().split(' ')[0];
+            let d, m, y;
+            // Handle various formats: DD/MM/YYYY or YYYY-MM-DD
+            if (cleanDateStr.includes('/')) {
+                const parts = cleanDateStr.split('/');
+                if (parts.length === 3) { d = parts[0]; m = parts[1]; y = parseInt(parts[2]); }
+            } else if (cleanDateStr.includes('-')) {
+                const parts = cleanDateStr.split('-');
+                if (parts[0].length === 4) { y = parseInt(parts[0]); m = parts[1]; d = parts[2]; }
+                else { d = parts[0]; m = parts[1]; y = parseInt(parts[2]); }
+            }
+            if (!y || !m || !d) return null;
+            if (y > 2400) y -= 543; // Convert Thai Year
+            return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        };
+
+        const formatDateDisplay = (isoDate) => {
+            if (!isoDate) return '-';
+            const [y, m, d] = isoDate.split('-');
+            return `${d}-${m}-${y}`;
+        };
+        
+        const getFiscalYearRange = (thaiFiscalYear) => {
+            const endYear = thaiFiscalYear - 543;
+            const startYear = endYear - 1;
+            return { start: `${startYear}-10-01`, end: `${endYear}-09-30` };
+        };
+
+        const Dashboard = () => {
+            const [rawData, setRawData] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [lastUpdated, setLastUpdated] = useState(null);
+            const [error, setError] = useState(null);
+
+            const today = new Date().toISOString().split('T')[0];
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            
+            const [filterType, setFilterType] = useState('daily');
+            const [selectedDate, setSelectedDate] = useState(today);
+            const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+            const [selectedFiscalYear, setSelectedFiscalYear] = useState(new Date().getFullYear() + 543);
+            const [customStartDate, setCustomStartDate] = useState(today);
+            const [customEndDate, setCustomEndDate] = useState(today);
+
+            // Filters
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedClinic, setSelectedClinic] = useState('All');
+            const [selectedRight, setSelectedRight] = useState('All');
+
+            // Pagination
+            const [currentPage, setCurrentPage] = useState(1);
+            const itemsPerPage = 10;
+
+            const fetchData = useCallback(() => {
+                setLoading(true);
+                const urlWithTimestamp = `${CSV_URL}&t=${Date.now()}`;
+                
+                Papa.parse(urlWithTimestamp, {
+                    download: true,
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        try {
+                            const headers = results.meta.fields;
+                            const findKey = (keywords) => headers.find(h => keywords.some(k => h.toLowerCase().replace(/[\.\s_]/g, '').includes(k)));
+                            
+                            // Column Mapping for OPD
+                            const colMap = {
+                                vn: findKey(['vn', 'visit_no', 'seq']),
+                                hn: findKey(['hn', 'cid']),
+                                date: findKey(['date', 'vstdate', 'visitdate', 'วันที่']),
+                                time: findKey(['time', 'vsttime', 'เวลา']),
+                                clinic: findKey(['clinic', 'dept', 'department', 'แผนก', 'ห้องตรวจ']),
+                                pdx: findKey(['pdx', 'diag', 'icd10', 'วินิจฉัย']),
+                                right: findKey(['right', 'pttype', 'สิทธิ']),
+                                cost: findKey(['cost', 'price', 'income', 'ค่ารักษา', 'amount'])
+                            };
+
+                            const formattedData = results.data.map(row => {
+                                return {
+                                    vn: row[colMap.vn] || '-',
+                                    hn: row[colMap.hn] || '-',
+                                    dateIso: parseDateToISO(row[colMap.date]),
+                                    time: row[colMap.time] || '',
+                                    clinic: row[colMap.clinic] || 'ไม่ระบุ',
+                                    pdx: row[colMap.pdx] || '-',
+                                    right: row[colMap.right] || 'Other',
+                                    cost: parseFloat((row[colMap.cost] || '0').toString().replace(/,/g, '')) || 0,
+                                };
+                            });
+                            
+                            // Filter valid dates only
+                            const validData = formattedData.filter(d => d.dateIso !== null);
+                            
+                            setRawData(validData);
+                            setLastUpdated(new Date());
+                            setLoading(false);
+                        } catch (err) {
+                            setError("Data Error: " + err.message);
+                            setLoading(false);
+                        }
+                    },
+                    error: (err) => {
+                        setError("Network Error: เช็คสิทธิ์การเข้าถึงไฟล์ Google Sheet (ต้องเป็น Public หรือ Publish to Web)");
+                        setLoading(false);
+                    }
+                });
+            }, []);
+
+            useEffect(() => {
+                fetchData();
+                const interval = setInterval(fetchData, 60000); 
+                return () => clearInterval(interval);
+            }, [fetchData]);
+
+            useEffect(() => {
+                setCurrentPage(1);
+            }, [filterType, selectedDate, selectedMonth, selectedFiscalYear, customStartDate, customEndDate, searchTerm, selectedClinic, selectedRight]);
+
+            const processedData = useMemo(() => {
+                let startDate, endDate;
+                if (filterType === 'daily') { 
+                    startDate = selectedDate; 
+                    endDate = selectedDate; 
+                } else if (filterType === 'monthly') {
+                    const [y, m] = selectedMonth.split('-').map(Number);
+                    startDate = `${y}-${String(m).padStart(2, '0')}-01`;
+                    const lastDay = new Date(y, m, 0).getDate();
+                    endDate = `${y}-${String(m).padStart(2, '0')}-${lastDay}`;
+                } else if (filterType === 'fiscal') {
+                    const range = getFiscalYearRange(selectedFiscalYear);
+                    startDate = range.start; 
+                    endDate = range.end;
+                } else if (filterType === 'custom') {
+                    startDate = customStartDate;
+                    endDate = customEndDate;
+                }
+
+                // 1. Date Filter
+                const dateFiltered = rawData.filter(item => 
+                    item.dateIso >= startDate && item.dateIso <= endDate
+                );
+
+                // 2. Attribute Filters
+                const finalFiltered = dateFiltered.filter(item => {
+                    const matchesSearch = searchTerm === '' || 
+                        item.vn.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        item.hn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        item.pdx.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesClinic = selectedClinic === 'All' || item.clinic === selectedClinic;
+                    const matchesRight = selectedRight === 'All' || item.right === selectedRight;
+                    
+                    return matchesSearch && matchesClinic && matchesRight;
+                });
+
+                // --- Analytics ---
+                const totalVisits = finalFiltered.length;
+                const totalCost = finalFiltered.reduce((sum, item) => sum + item.cost, 0);
+                const avgCost = totalVisits > 0 ? totalCost / totalVisits : 0;
+
+                // Clinic Stats
+                const clinicCount = finalFiltered.reduce((acc, item) => {
+                    acc[item.clinic] = (acc[item.clinic] || 0) + 1;
+                    return acc;
+                }, {});
+                const clinicData = Object.keys(clinicCount)
+                    .map(k => ({ name: k, value: clinicCount[k] }))
+                    .sort((a,b) => b.value - a.value);
+
+                // Right Stats
+                const rightCount = finalFiltered.reduce((acc, item) => {
+                    acc[item.right] = (acc[item.right] || 0) + 1;
+                    return acc;
+                }, {});
+                const rightData = Object.keys(rightCount).map(k => ({ name: k, value: rightCount[k] }));
+
+                // Top 10 Diagnosis
+                const pdxCount = finalFiltered.reduce((acc, item) => {
+                    if (item.pdx && item.pdx !== '-') {
+                        acc[item.pdx] = (acc[item.pdx] || 0) + 1;
+                    }
+                    return acc;
+                }, {});
+                const topPdxData = Object.keys(pdxCount)
+                    .map(k => ({ name: k, value: pdxCount[k] }))
+                    .sort((a,b) => b.value - a.value)
+                    .slice(0, 10);
+
+                // Time Distribution (Hourly)
+                const timeDataRaw = Array(24).fill(0);
+                finalFiltered.forEach(item => {
+                    if (item.time) {
+                        const hour = parseInt(item.time.split(':')[0]);
+                        if (!isNaN(hour) && hour >= 0 && hour < 24) timeDataRaw[hour]++;
+                    }
+                });
+                const timeChartData = timeDataRaw.map((count, hour) => ({
+                    hour: `${hour.toString().padStart(2,'0')}:00`,
+                    visits: count
+                }));
+
+                const uniqueClinics = ['All', ...new Set(dateFiltered.map(d => d.clinic).filter(Boolean).sort())];
+                const uniqueRights = ['All', ...new Set(dateFiltered.map(d => d.right).filter(Boolean).sort())];
+
+                return {
+                    tableData: finalFiltered,
+                    totalVisits, totalCost, avgCost,
+                    clinicData, rightData, topPdxData, timeChartData,
+                    uniqueClinics, uniqueRights,
+                    dateLabel: `${formatDateDisplay(startDate)} ถึง ${formatDateDisplay(endDate)}`
+                };
+            }, [rawData, filterType, selectedDate, selectedMonth, selectedFiscalYear, customStartDate, customEndDate, searchTerm, selectedClinic, selectedRight]);
+
+            // Pagination
+            const totalPages = Math.ceil(processedData.tableData.length / itemsPerPage);
+            const paginatedData = useMemo(() => {
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                return processedData.tableData.slice(startIndex, startIndex + itemsPerPage);
+            }, [processedData.tableData, currentPage]);
+
+            const exportToExcel = () => {
+                const dataToExport = processedData.tableData.map(item => ({
+                    'VN': item.vn,
+                    'HN': item.hn,
+                    'วันที่': formatDateDisplay(item.dateIso),
+                    'เวลา': item.time,
+                    'ห้องตรวจ/แผนก': item.clinic,
+                    'วินิจฉัย (Pdx)': item.pdx,
+                    'สิทธิ์': item.right,
+                    'ค่ารักษา': item.cost
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(dataToExport);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "OPD_Report");
+                XLSX.utils.writeFile(wb, `OPD_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+            };
+
+            const COLORS = ['#0d9488', '#0f766e', '#115e59', '#134e4a', '#2dd4bf', '#5eead4', '#99f6e4', '#ccfbf1'];
+            const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#6366f1'];
+
+            if (error) return <div className="p-10 text-center text-red-500 bg-red-50 border border-red-200 rounded-lg m-4">{error} <button onClick={fetchData} className="ml-4 px-4 py-2 bg-white border rounded shadow-sm hover:bg-slate-50">ลองใหม่</button></div>;
+
+            return (
+                <div className="min-h-screen bg-teal-50/30 p-4 md:p-8 pb-20">
+                    <header className="max-w-7xl mx-auto mb-8">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                            <h1 className="text-2xl font-bold text-teal-900 flex items-center gap-2">
+                                <Stethoscope className="text-teal-600" /> OPD Analytics Dashboard
+                            </h1>
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <div className="text-sm text-teal-800 bg-white px-4 py-1 rounded-full shadow-sm border border-teal-100 inline-block">
+                                        ช่วงข้อมูล: <span className="font-bold">{processedData.dateLabel}</span>
+                                    </div>
+                                    {lastUpdated && <div className="text-[10px] text-slate-400 mt-1 mr-2">อัปเดตล่าสุด: {lastUpdated.toLocaleTimeString()}</div>}
+                                </div>
+                                <button onClick={fetchData} disabled={loading} className="p-2 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50">
+                                    <RefreshCw className={`w-5 h-5 text-slate-600 ${loading ? 'spin-anim' : ''}`} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Filter Bar */}
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-6 items-center flex-wrap">
+                             <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto max-w-full">
+                                {[{ id: 'daily', label: 'รายวัน' }, { id: 'monthly', label: 'รายเดือน' }, { id: 'fiscal', label: 'ปีงบฯ' }, { id: 'custom', label: 'ช่วงเวลา' }].map(type => (
+                                    <label key={type.id} className="cursor-pointer relative shrink-0">
+                                        <input type="radio" name="filterType" value={type.id} checked={filterType === type.id} onChange={(e) => setFilterType(e.target.value)} className="sr-only" />
+                                        <span className={`block px-6 py-2 rounded-md text-sm transition-all whitespace-nowrap ${filterType === type.id ? '' : 'text-slate-500'}`}>{type.label}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="flex items-center gap-3 flex-wrap">
+                                {filterType === 'daily' && <input type="date" className="border rounded-lg px-3 py-2" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />}
+                                {filterType === 'monthly' && <input type="month" className="border rounded-lg px-3 py-2" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />}
+                                {filterType === 'fiscal' && (
+                                    <select className="border rounded-lg px-3 py-2" value={selectedFiscalYear} onChange={(e) => setSelectedFiscalYear(parseInt(e.target.value))}>
+                                        {[2569, 2570, 2571, 2572, 2573].map(y => <option key={y} value={y}>ปีงบ {y}</option>)}
+                                    </select>
+                                )}
+                                {filterType === 'custom' && (
+                                    <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200">
+                                        <input type="date" className="bg-transparent outline-none px-2 py-1 text-sm" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} />
+                                        <span className="text-slate-400">-</span>
+                                        <input type="date" className="bg-transparent outline-none px-2 py-1 text-sm" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </header>
+
+                    {loading && rawData.length === 0 ? (
+                        <div className="h-64 flex flex-col items-center justify-center text-teal-600">
+                            <RefreshCw className="w-8 h-8 spin-anim mb-4"/>
+                            <span>กำลังโหลดข้อมูลผู้ป่วยนอก...</span>
+                        </div>
+                    ) : (
+                    <main className="max-w-7xl mx-auto space-y-8">
+                        
+                        {/* KPI Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-teal-500 card-hover">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-sm text-slate-500 mb-1">จำนวนผู้รับบริการ (Visits)</p>
+                                        <h3 className="text-3xl font-bold text-teal-900">{processedData.totalVisits.toLocaleString()}</h3>
+                                        <p className="text-xs text-teal-600 mt-2 flex items-center gap-1"><Users size={12}/> ครั้ง</p>
+                                    </div>
+                                    <div className="bg-teal-50 p-3 rounded-lg text-teal-600"><Users size={24} /></div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-amber-500 card-hover">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-sm text-slate-500 mb-1">รายได้รวม (Total Income)</p>
+                                        <h3 className="text-3xl font-bold text-slate-800">฿{processedData.totalCost.toLocaleString()}</h3>
+                                        <p className="text-xs text-amber-600 mt-2">ยอดสะสมตามช่วงเวลา</p>
+                                    </div>
+                                    <div className="bg-amber-50 p-3 rounded-lg text-amber-600"><DollarSign size={24} /></div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-indigo-500 card-hover">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-sm text-slate-500 mb-1">ค่าเฉลี่ยต่อหัว (Avg/Visit)</p>
+                                        <h3 className="text-3xl font-bold text-slate-800">฿{processedData.avgCost.toFixed(0).toLocaleString()}</h3>
+                                        <p className="text-xs text-indigo-600 mt-2">บาท / ครั้ง</p>
+                                    </div>
+                                    <div className="bg-indigo-50 p-3 rounded-lg text-indigo-600"><Activity size={24} /></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Charts Section */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            
+                            {/* Chart 1: Time Distribution */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
+                                <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-700">
+                                    <Clock className="w-5 h-5 text-teal-500"/> ช่วงเวลาการรับบริการ (Hourly Visits)
+                                </h3>
+                                <div className="h-64">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={processedData.timeChartData}>
+                                            <defs>
+                                                <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#0d9488" stopOpacity={0.8}/>
+                                                    <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0"/>
+                                            <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fontSize: 12}} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12}} />
+                                            <Tooltip contentStyle={{borderRadius: '8px', border:'none', boxShadow:'0 4px 6px -1px rgba(0,0,0,0.1)'}}/>
+                                            <Area type="monotone" dataKey="visits" stroke="#0d9488" fillOpacity={1} fill="url(#colorVisits)" name="จำนวนคน" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            {/* Chart 2: Top 5 Diagnosis */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                                <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-700">
+                                    <Activity className="w-5 h-5 text-rose-500"/> 5 อันดับโรค (Top Diag)
+                                </h3>
+                                <div className="space-y-4">
+                                    {processedData.topPdxData.slice(0, 5).map((item, idx) => (
+                                        <div key={idx} className="relative">
+                                            <div className="flex justify-between text-sm mb-1">
+                                                <span className="font-medium text-slate-700 truncate w-3/4" title={item.name}>{item.name || '(ไม่ระบุ)'}</span>
+                                                <span className="font-bold text-slate-800">{item.value}</span>
+                                            </div>
+                                            <div className="w-full bg-slate-100 rounded-full h-2">
+                                                <div className="bg-rose-500 h-2 rounded-full" style={{width: `${(item.value / processedData.totalVisits) * 100}%`}}></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* Chart 3: Clinic & Rights */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                                <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-700">
+                                    <Building className="w-5 h-5 text-indigo-500"/> สถิติแยกตามห้องตรวจ (Clinic)
+                                </h3>
+                                <div className="h-64">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={processedData.clinicData.slice(0, 10)} layout="vertical" margin={{left: 20}}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0"/>
+                                            <XAxis type="number" hide />
+                                            <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 11}} />
+                                            <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px'}}/>
+                                            <Bar dataKey="value" fill="#6366f1" radius={[0, 4, 4, 0]} name="จำนวนคน" barSize={20} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                                <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-700">
+                                    <Users className="w-5 h-5 text-amber-500"/> สัดส่วนสิทธิการรักษา
+                                </h3>
+                                <div className="flex items-center justify-center h-64">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={processedData.rightData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                paddingAngle={2}
+                                                dataKey="value"
+                                            >
+                                                {processedData.rightData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                            <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{fontSize:'11px'}}/>
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Data Table */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                             <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                                <h3 className="font-bold text-slate-700">รายชื่อผู้รับบริการ ({processedData.tableData.length})</h3>
+                                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                                    <div className="flex items-center bg-white border border-slate-300 rounded px-2 py-1.5 flex-1 md:flex-none">
+                                        <Search size={16} className="text-slate-400 mr-2" />
+                                        <input type="text" placeholder="ค้นหา VN, HN, โรค..." className="bg-transparent outline-none text-sm w-full md:w-40" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                                    </div>
+                                    <select className="border rounded text-sm py-1 px-2 outline-none max-w-[150px]" value={selectedClinic} onChange={(e) => setSelectedClinic(e.target.value)}>
+                                        {processedData.uniqueClinics.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                    <select className="border rounded text-sm py-1 px-2 outline-none max-w-[150px]" value={selectedRight} onChange={(e) => setSelectedRight(e.target.value)}>
+                                        {processedData.uniqueRights.map(r => <option key={r} value={r}>{r}</option>)}
+                                    </select>
+                                    <button onClick={exportToExcel} className="flex items-center gap-1 bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm shadow transition ml-auto md:ml-2">
+                                        <Download size={14} /> Excel
+                                    </button>
+                                </div>
+                             </div>
+
+                             <div className="overflow-x-auto w-full">
+                                <table className="min-w-full text-left text-sm whitespace-nowrap">
+                                    <thead className="bg-white border-b border-slate-200">
+                                        <tr className="text-slate-500 uppercase bg-slate-50/50">
+                                            <th className="px-4 py-3 sticky left-0 bg-slate-50 z-10">VN</th>
+                                            <th className="px-4 py-3">HN</th>
+                                            <th className="px-4 py-3">วันที่</th>
+                                            <th className="px-4 py-3">เวลา</th>
+                                            <th className="px-4 py-3">ห้องตรวจ</th>
+                                            <th className="px-4 py-3">Pdx</th>
+                                            <th className="px-4 py-3">สิทธิ</th>
+                                            <th className="px-4 py-3 text-right">ค่ารักษา</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {paginatedData.length > 0 ? (
+                                            paginatedData.map((item, idx) => (
+                                                <tr key={idx} className="hover:bg-teal-50/30 transition-colors">
+                                                    <td className="px-4 py-2 font-medium sticky left-0 bg-white border-r border-slate-100">{item.vn}</td>
+                                                    <td className="px-4 py-2 text-slate-500">{item.hn}</td>
+                                                    <td className="px-4 py-2">{formatDateDisplay(item.dateIso)}</td>
+                                                    <td className="px-4 py-2 text-slate-500">{item.time}</td>
+                                                    <td className="px-4 py-2"><span className="px-2 py-0.5 rounded-full bg-slate-100 text-xs font-medium text-slate-600">{item.clinic}</span></td>
+                                                    <td className="px-4 py-2 max-w-[200px] truncate" title={item.pdx}>{item.pdx}</td>
+                                                    <td className="px-4 py-2 text-xs">{item.right}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{item.cost.toLocaleString()}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr><td colSpan="8" className="text-center py-10 text-slate-400">ไม่พบข้อมูล</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                             </div>
+
+                             {/* Pagination */}
+                             <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                                <span className="text-xs text-slate-500">หน้า {currentPage} จาก {totalPages || 1}</span>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1 bg-white border rounded hover:bg-slate-100 disabled:opacity-50"><ChevronLeft size={16}/></button>
+                                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="p-1 bg-white border rounded hover:bg-slate-100 disabled:opacity-50"><ChevronRight size={16}/></button>
+                                </div>
+                             </div>
+                        </div>
+
+                    </main>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Dashboard />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1253 @@
+<!doctype html><html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IPD Dashboard: Real-time Monitor & Claim Analytics</title><script src="https://cdn.tailwindcss.com"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script><script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script><style>body{font-family:Sarabun,sans-serif;background-color:#f8fafc}.card-hover:hover{transform:translateY(-2px);box-shadow:0 10px 15px -3px rgba(0,0,0,.1)}input[type=radio]:checked+span{background-color:#4f46e5;color:#fff;font-weight:700;box-shadow:0 4px 6px -1px rgba(79,70,229,.2)}.spin-anim{animation:spin 1s linear infinite}@keyframes spin{100%{transform:rotate(360deg)}}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#f1f5f9}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:#94a3b8}.custom-list-scroll::-webkit-scrollbar{width:4px}</style><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet"><script src="https://unpkg.com/lucide@latest"></script><script defer="defer" src="/wangbark/ipddashboard.git/static/js/main.a328f5d1.js"></script><link href="/wangbark/ipddashboard.git/static/css/main.f855e6bc.css" rel="stylesheet"></head><body><div id="root"></div><script type="text/babel">const { useState, useMemo, useEffect, useCallback } = React;
+        const RechartsLib = window.Recharts || {};
+        const { 
+            BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
+            PieChart, Pie, Cell 
+        } = RechartsLib;
+
+        // --- Icons Helper ---
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
+        );
+        const Users = (props) => <IconBase {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></IconBase>;
+        const UserPlus = (props) => <IconBase {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></IconBase>;
+        const Activity = (props) => <IconBase {...props}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></IconBase>;
+        const DollarSign = (props) => <IconBase {...props}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></IconBase>;
+        const AlertCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></IconBase>;
+        const AlertTriangle = (props) => <IconBase {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></IconBase>;
+        const CheckCircle2 = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></IconBase>;
+        const FileText = (props) => <IconBase {...props}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></IconBase>;
+        const ClipboardList = (props) => <IconBase {...props}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></IconBase>;
+        const RefreshCw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></IconBase>;
+        const Clock = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconBase>;
+        const Wallet = (props) => <IconBase {...props}><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9.42a2 2 0 0 0-1.5-1.9L4 6z"/></IconBase>;
+        const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></IconBase>;
+        const Download = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></IconBase>;
+        const ChevronLeft = (props) => <IconBase {...props}><polyline points="15 18 9 12 15 6"/></IconBase>;
+        const ChevronRight = (props) => <IconBase {...props}><polyline points="9 18 15 12 9 6"/></IconBase>;
+        const CheckSquare = (props) => <IconBase {...props}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></IconBase>;
+        const XOctagon = (props) => <IconBase {...props}><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></IconBase>;
+        const FileClock = (props) => <IconBase {...props}><path d="M16 22h2a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><circle cx="10" cy="16" r="6"/><polyline points="10 12 10 16 13 16"/></IconBase>;
+        const Stethoscope = (props) => <IconBase {...props}><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.3.3 0 1 0 0 .6h1a1.4 1.4 0 0 1 1.4 1.4v5a5.4 5.4 0 0 1-5.4 5.4 5.4 5.4 0 0 1-5.4-5.4V4a1.4 1.4 0 0 1 1.4-1.4h1"/><path d="M11 15h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2Z"/></IconBase>;
+        const CalendarCheck = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></IconBase>;
+        const CalendarOff = (props) => <IconBase {...props}><path d="M4.2 4.2 19.8 19.8"/><rect width="18" height="18" x="3" y="4" rx="2" ry="2" opacity="0.5"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></IconBase>;
+        const FileSignature = (props) => <IconBase {...props}><path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L9 18c-.2.5-.5 1-1 1.5Z"/><path d="M14 2v6h6"/><path d="m18 13-1.5-1.5"/><path d="M12.5 16a2.2 2.2 0 0 0-1.8 1.1l-1 2.3 2.6-.9a2 2 0 0 0 1.2-1.3l2.8-6.6-1.5-1.5Z"/></IconBase>;
+        const Coins = (props) => <IconBase {...props}><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7 .71-2.82 2.82"/></IconBase>;
+        const FileQuestion = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 10.3c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2"/><path d="M12 17h.01"/></IconBase>;
+
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROXMFts88KtV4W3wQvWddkGF4bbAF8NQ9Wwybfk9oob8S7cANi6dLl1Z4Gf38JVxlVR6F36Yh4a6Kk/pub?gid=0&single=true&output=csv';
+
+        // --- Helpers ---
+        const parseDateToISO = (dateStr) => {
+            if (!dateStr) return null;
+            let cleanDateStr = dateStr.toString().trim().split(' ')[0];
+            let d, m, y;
+            if (cleanDateStr.includes('/')) {
+                const parts = cleanDateStr.split('/');
+                if (parts.length === 3) { d = parts[0]; m = parts[1]; y = parseInt(parts[2]); }
+            } else if (cleanDateStr.includes('-')) {
+                const parts = cleanDateStr.split('-');
+                if (parts[0].length === 4) { y = parseInt(parts[0]); m = parts[1]; d = parts[2]; }
+                else { d = parts[0]; m = parts[1]; y = parseInt(parts[2]); }
+            }
+            if (!y || !m || !d) return null;
+            if (y > 2400) y -= 543;
+            return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        };
+
+        const calculateDayDiff = (startDateIso, endDateIso) => {
+            if (!startDateIso || !endDateIso) return null;
+            const start = new Date(startDateIso);
+            const end = new Date(endDateIso);
+            const diffTime = end - start;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            return diffDays;
+        }
+
+        const formatDateDisplay = (isoDate) => {
+            if (!isoDate) return '-';
+            const [y, m, d] = isoDate.split('-');
+            return `${d}-${m}-${y}`;
+        };
+
+        const getFiscalYearRange = (thaiFiscalYear) => {
+            const endYear = thaiFiscalYear - 543;
+            const startYear = endYear - 1;
+            const returnRange = { start: `${startYear}-10-01`, end: `${endYear}-09-30` };
+            return returnRange;
+        };
+
+        const cleanIssueData = (val) => {
+            if (!val) return '';
+            const trimmed = val.toString().trim();
+            if (trimmed === '0' || trimmed === '-' || trimmed === '') return '';
+            return trimmed;
+        };
+
+        const Dashboard = () => {
+            const [rawData, setRawData] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [lastUpdated, setLastUpdated] = useState(null);
+            const [error, setError] = useState(null);
+
+            const today = new Date().toISOString().split('T')[0];
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            
+            const [filterType, setFilterType] = useState('daily');
+            const [selectedDate, setSelectedDate] = useState(today);
+            const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+            const [selectedFiscalYear, setSelectedFiscalYear] = useState(new Date().getFullYear() + 543);
+            const [customStartDate, setCustomStartDate] = useState(today);
+            const [customEndDate, setCustomEndDate] = useState(today);
+
+            // Table Filter States
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedRight, setSelectedRight] = useState('All');
+            const [selectedFund, setSelectedFund] = useState('All');
+            const [selectedClaimStatus, setSelectedClaimStatus] = useState('All');
+
+            // Pagination State
+            const [currentPage, setCurrentPage] = useState(1);
+            const itemsPerPage = 10;
+
+            const fetchData = useCallback(() => {
+                setLoading(true);
+                const urlWithTimestamp = `${CSV_URL}&t=${Date.now()}`;
+                
+                Papa.parse(urlWithTimestamp, {
+                    download: true,
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        try {
+                            const headers = results.meta.fields;
+                            const findKey = (keywords) => headers.find(h => keywords.some(k => h.toLowerCase().replace(/[\.\s_]/g, '').includes(k)));
+                            
+                            const colMap = {
+                                an: findKey(['an']),
+                                admitDate: findKey(['admit', 'แอดมิท', 'วันที่รับ']),
+                                dischargeDate: findKey(['discharge', 'จำหน่าย', 'dchdate']),
+                                dchSummaryDate: findKey(['dchargesum', 'สรุปชาร์จ', 'summarydate', 'date_sum']),
+                                type: findKey(['ประเภท', 'type']),
+                                right: findKey(['สิทธิ', 'right']),
+                                fund: findKey(['fund', 'กองทุน', 'ทุน', 'src_fund']),
+                                cost: findKey(['ค่ารักษา', 'cost', 'amount']),
+                                outstanding: findKey(['ค้าง', 'outstanding', 'balance']),
+                                adjRw: findKey(['adjrw', 'adj.rw', 'rw']),
+                                pdx: findKey(['pdx', 'diag']),
+                                department: findKey(['แผนก', 'ward', 'department', 'dep', 'หน่วยงาน']),
+                                error: findKey(['error', 'err']),
+                                warning: findKey(['warning', 'warn']),
+                                admdate: findKey(['admdate', 'los', 'วันนอน', 'จำนวนวัน', 'จำนวนวันนอน']),
+                                diagDate: findKey(['diagdate', 'dxtime', 'วันที่วินิจฉัย', 'date_diag']),
+                                isPull: findKey(['ส่งเคลม', 'claimstatus', 'ispull']),
+                                claimDate: findKey(['วันที่ส่งเคลม', 'claimdate', 'senddate', 'datesend']),
+                                claimAmt: findKey(['ยอดเคลม', 'ชดเชย', 'claimprice', 'reimburse', 'priceclaim', 'stm']),
+                                claimStatusText: findKey(['สถานะการเคลม', 'rept_status', 'claim_status_text', 'status_text']),
+                                claimError: findKey(['claimerror', 'error_code', 'deny', 'ติดc'])
+                            };
+
+                            const formattedData = results.data.map(row => {
+                                const dischargeDateIso = parseDateToISO(row[colMap.dischargeDate]);
+                                const claimDateIso = parseDateToISO(row[colMap.claimDate]);
+                                const diagDateIso = parseDateToISO(row[colMap.diagDate]);
+                                const dchSummaryDateIso = parseDateToISO(row[colMap.dchSummaryDate]);
+
+                                const rawIsPull = (row[colMap.isPull] || '0').trim();
+                                
+                                // --- Workflow Lags ---
+                                const summaryLag = (dischargeDateIso && dchSummaryDateIso) 
+                                    ? calculateDayDiff(dischargeDateIso, dchSummaryDateIso) 
+                                    : null;
+
+                                const diagLag = (dischargeDateIso && diagDateIso) 
+                                    ? calculateDayDiff(dischargeDateIso, diagDateIso) 
+                                    : null;
+
+                                // NEW: Coding Lag (Summary -> Diag)
+                                const codingLag = (dchSummaryDateIso && diagDateIso)
+                                    ? calculateDayDiff(dchSummaryDateIso, diagDateIso)
+                                    : null;
+
+                                const claimLag = (rawIsPull === '1' && dischargeDateIso && claimDateIso) 
+                                    ? calculateDayDiff(dischargeDateIso, claimDateIso) 
+                                    : null;
+
+                                // --- Claim Status Logic ---
+                                const rightVal = (row[colMap.right] || 'Other').trim();
+                                const rightUpper = rightVal.toUpperCase();
+                                let claimStatusTextVal = (row[colMap.claimStatusText] || '-').trim();
+                                const hasExistingStatus = claimStatusTextVal !== '-' && claimStatusTextVal !== '';
+
+                                if (rightUpper === 'XXX') {
+                                    claimStatusTextVal = 'สิทธิชำระเงิน'; // Changed from ชำระเงินเอง
+                                } else if (['OFC', 'SSS', 'LGO', 'BKK','A9','SSI','NRD'].includes(rightUpper) && !hasExistingStatus) {
+                                    claimStatusTextVal = 'รอนำเข้าไฟล์';
+                                }
+
+                                let isClaimed = rawIsPull === '1';
+                                if (rightUpper === 'XXX') {
+                                    isClaimed = true; 
+                                }
+
+                                const rawClaimError = (row[colMap.claimError] || '').trim();
+                                let displayClaimError = rawClaimError;
+
+                                if (claimStatusTextVal.includes("ไม่อนุมัติ") || claimStatusTextVal.includes("ปฏิเสธ")) {
+                                    displayClaimError = rawClaimError;
+                                }
+                                else {
+                                    const successKeywords = ["อนุมัติ", "รอโอนเงิน", "โอนเงินสำเร็จ", "พรบ", "ชำระเงินเอง", "สิทธิชำระเงิน", "ไม่ประสงค์เบิก", "รอนำเข้าไฟล์"];
+                                    if (successKeywords.some(k => claimStatusTextVal.includes(k))) {
+                                        displayClaimError = '-';
+                                    }
+                                }
+                                
+                                const pdxVal = (row[colMap.pdx] || '').trim();
+                                const isUncoded = (!pdxVal || pdxVal === '-' || pdxVal === '0' || pdxVal === '');
+
+                                return {
+                                    an: row[colMap.an] || '-',
+                                    admitDateIso: parseDateToISO(row[colMap.admitDate]),
+                                    dischargeDateIso: dischargeDateIso,
+                                    dischargeDateDisplay: row[colMap.dischargeDate] || '-',
+                                    dischargeType: row[colMap.type] || 'N/A',
+                                    department: row[colMap.department] || 'ไม่ระบุ',
+                                    right: rightVal,
+                                    fund: row[colMap.fund] || '-',
+                                    cost: parseFloat((row[colMap.cost] || '0').toString().replace(/,/g, '')) || 0,
+                                    outstanding: parseFloat((row[colMap.outstanding] || '0').toString().replace(/,/g, '')) || 0,
+                                    adjRw: parseFloat((row[colMap.adjRw] || '0').toString().replace(/,/g, '')) || 0,
+                                    pdx: pdxVal,
+                                    codingStatus: isUncoded ? 'Uncoded' : 'Complete',
+                                    error: cleanIssueData(row[colMap.error]),
+                                    warning: cleanIssueData(row[colMap.warning]),
+                                    los: parseInt((row[colMap.admdate] || '0').toString().replace(/,/g, '')) || 0,
+                                    
+                                    isClaimed: isClaimed,
+                                    claimDateIso: claimDateIso,
+                                    claimLagDays: claimLag,
+                                    claimAmt: parseFloat((row[colMap.claimAmt] || '0').toString().replace(/,/g, '')) || 0,
+
+                                    // Doctor & Diag Data
+                                    dchSummaryDateIso: dchSummaryDateIso,
+                                    summaryLagDays: summaryLag,
+                                    diagDateIso: diagDateIso,
+                                    diagLagDays: diagLag,
+                                    codingLagDays: codingLag, // New
+
+                                    claimStatusText: claimStatusTextVal,
+                                    claimError: displayClaimError
+                                };
+                            });
+                            setRawData(formattedData);
+                            setLastUpdated(new Date());
+                            setLoading(false);
+                        } catch (err) {
+                            setError("Data Error: " + err.message);
+                            setLoading(false);
+                        }
+                    },
+                    error: (err) => {
+                        setError("Network Error: " + err.message);
+                        setLoading(false);
+                    }
+                });
+            }, []);
+
+            useEffect(() => {
+                fetchData();
+            }, [fetchData]);
+
+            useEffect(() => {
+                setCurrentPage(1);
+            }, [filterType, selectedDate, selectedMonth, selectedFiscalYear, customStartDate, customEndDate, searchTerm, selectedRight, selectedFund, selectedClaimStatus]);
+
+            const processedData = useMemo(() => {
+                let startDate, endDate;
+                if (filterType === 'daily') { 
+                    startDate = selectedDate; 
+                    endDate = selectedDate; 
+                } else if (filterType === 'monthly') {
+                    const [y, m] = selectedMonth.split('-').map(Number);
+                    startDate = `${y}-${String(m).padStart(2, '0')}-01`;
+                    const lastDay = new Date(y, m, 0).getDate();
+                    endDate = `${y}-${String(m).padStart(2, '0')}-${lastDay}`;
+                } else if (filterType === 'fiscal') {
+                    const range = getFiscalYearRange(selectedFiscalYear);
+                    startDate = range.start; 
+                    endDate = range.end;
+                } else if (filterType === 'custom') {
+                    startDate = customStartDate;
+                    endDate = customEndDate;
+                }
+
+                const dateFiltered = rawData.filter(item => 
+                    item.dischargeDateIso && item.dischargeDateIso >= startDate && item.dischargeDateIso <= endDate
+                );
+
+                const finalFiltered = dateFiltered.filter(item => {
+                    const matchesSearch = searchTerm === '' || 
+                        item.an.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        item.pdx.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesRight = selectedRight === 'All' || item.right === selectedRight;
+                    
+                    const itemFunds = (item.fund || '').toString().split(',').map(f => f.trim());
+                    const matchesFund = selectedFund === 'All' || itemFunds.includes(selectedFund);
+
+                    const matchesClaimStatus = selectedClaimStatus === 'All' || item.claimStatusText === selectedClaimStatus;
+                    
+                    return matchesSearch && matchesRight && matchesFund && matchesClaimStatus;
+                });
+
+                const filtered = dateFiltered; 
+
+                const totalDischarged = filtered.length;
+                const totalNewAdmit = rawData.filter(item => 
+                    item.admitDateIso && item.admitDateIso >= startDate && item.admitDateIso <= endDate
+                ).length;
+                const totalCost = filtered.reduce((sum, item) => sum + item.cost, 0);
+                const totalOutstanding = filtered.reduce((sum, item) => sum + item.outstanding, 0);
+                const totalClaimAmt = filtered.reduce((sum, item) => sum + item.claimAmt, 0);
+
+                const isUncoded = (pdx) => !pdx || pdx === '-' || pdx === '' || pdx === '0';
+                const pdxCodedList = filtered.filter(item => !isUncoded(item.pdx));
+                const pdxUncodedList = filtered.filter(item => isUncoded(item.pdx));
+                const codedCount = pdxCodedList.length;
+                const uncodedCount = pdxUncodedList.length;
+                const totalAdjRw = pdxCodedList.reduce((sum, item) => sum + item.adjRw, 0);
+
+                const summaryCompleteList = filtered.filter(item => item.dchSummaryDateIso !== null);
+                const summaryPendingList = filtered.filter(item => item.dchSummaryDateIso === null);
+                const summaryCompleteCount = summaryCompleteList.length;
+                const summaryPendingCount = summaryPendingList.length;
+
+                const hasIssue = (val) => val && val !== '' && val !== '-' && val !== '0';
+                const errorList = filtered.filter(item => hasIssue(item.error));
+                const warningList = filtered.filter(item => hasIssue(item.warning));
+
+                // Claim Analytics
+                const claimedList = filtered.filter(item => item.isClaimed);
+                const pendingClaimList = filtered.filter(item => !item.isClaimed);
+                const claimedCount = claimedList.length;
+                const pendingClaimCount = pendingClaimList.length;
+                
+                const totalLag = claimedList.reduce((sum, item) => sum + (item.claimLagDays || 0), 0);
+                const avgLagDays = claimedList.length > 0 ? (totalLag / claimedList.length).toFixed(1) : 0;
+
+                const summaryList = filtered.filter(item => item.summaryLagDays !== null);
+                const totalSummaryLag = summaryList.reduce((sum, item) => sum + item.summaryLagDays, 0);
+                const avgSummaryLag = summaryList.length > 0 ? (totalSummaryLag / summaryList.length).toFixed(1) : 0;
+
+                // Diag Lag (Discharge -> Diag)
+                const diagList = filtered.filter(item => item.diagLagDays !== null);
+                const totalDiagLag = diagList.reduce((sum, item) => sum + item.diagLagDays, 0);
+                const avgDiagLag = diagList.length > 0 ? (totalDiagLag / diagList.length).toFixed(1) : 0;
+
+                // NEW: Coding Lag (Summary -> Diag)
+                const codingProcessList = filtered.filter(item => item.codingLagDays !== null);
+                const totalCodingLag = codingProcessList.reduce((sum, item) => sum + item.codingLagDays, 0);
+                const avgCodingLag = codingProcessList.length > 0 ? (totalCodingLag / codingProcessList.length).toFixed(1) : 0;
+
+                // --- Claim Within Month vs Self Pay Logic ---
+                let claimWithinMonthCount = 0;
+                let claimLateMonthCount = 0;
+                let selfPayTotal = 0;
+                let selfPayPaid = 0;
+                let selfPayPending = 0;
+
+                const now = new Date();
+                const currentMonthIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+                filtered.forEach(item => {
+                    const rightUpper = item.right ? item.right.toUpperCase() : '';
+                    
+                    if (rightUpper === 'XXX') {
+                        // XXX Logic
+                        selfPayTotal++;
+                        if (item.outstanding <= 0) {
+                            selfPayPaid++;
+                        } else {
+                            selfPayPending++; 
+                        }
+                    } else {
+                        // Normal Rights Logic (Count for Claim Timing)
+                        if (item.dischargeDateIso) {
+                            const dMonth = item.dischargeDateIso.substring(0, 7);
+                            if (item.isClaimed && item.claimDateIso) {
+                                const cMonth = item.claimDateIso.substring(0, 7);
+                                if (dMonth === cMonth) claimWithinMonthCount++;
+                                else claimLateMonthCount++;
+                            } else {
+                                if (dMonth !== currentMonthIso) claimLateMonthCount++;
+                            }
+                        }
+                    }
+                });
+                // --------------------------------------------
+
+                // Outcome Analysis (All rights EXCEPT XXX)
+                const claimAnalysisList = filtered.filter(item => item.right.toUpperCase() !== 'XXX');
+                const claimAnalysisCount = claimAnalysisList.length;
+                let outcome = { transferred: 0, approved: 0, waitingTransfer: 0, processing: 0, errorReprocess: 0, others: 0 };
+
+                claimAnalysisList.forEach(item => {
+                    const status = item.claimStatusText || '';
+                    if (status.includes('โอนเงินสำเร็จ') || status.includes('โอนเงินเรียบร้อย')) outcome.transferred++;
+                    else if (status.includes('อนุมัติ')) outcome.approved++;
+                    else if (status.includes('ตัดรอบเบิกจ่าย')) outcome.waitingTransfer++;
+                    else if (status.includes('สปสช.รับข้อมูล')) outcome.processing++;
+                    else if (status.includes('ปฏิเสธ') || status.includes('ติด C') || status.includes('ไม่อนุมัติ')) outcome.errorReprocess++;
+                    else outcome.others++; // This captures 'รอนำเข้าไฟล์', '-', '', etc.
+                });
+
+                const claimOutcomeData = [
+                    { name: 'โอนเงินแล้ว', value: outcome.transferred, color: '#059669' },
+                    { name: 'อนุมัติ', value: outcome.approved, color: '#34d399' }, 
+                    { name: 'รอโอนเงิน/ตัดรอบ', value: outcome.waitingTransfer, color: '#f59e0b' },
+                    { name: 'อยู่ระหว่างพิจารณา', value: outcome.processing, color: '#3b82f6' }, 
+                    { name: 'ต้องแก้ไข/ส่งใหม่', value: outcome.errorReprocess, color: '#ef4444' },
+                    { name: 'ยังไม่ส่งหรือรอนำเข้าไฟล์', value: outcome.others, color: '#94a3b8' } // New Label
+                ].filter(d => d.value > 0);
+
+                // Fund Analysis
+                const ucsOnlyData = filtered.filter(item => {
+                    const isUCS = item.right && item.right.trim().toUpperCase() === 'UCS';
+                    if (!isUCS) return false;
+                    if (!item.isClaimed) return false;
+                    const status = item.claimStatusText || '';
+                    if (status.includes('ไม่อนุมัติ') || status.includes('ปฏิเสธ')) return false;
+                    return true;
+                });
+                
+                const fundCount = ucsOnlyData.reduce((acc, item) => {
+                    if (item.fund && item.fund !== '-') {
+                        const funds = item.fund.toString().split(',');
+                        funds.forEach(f => {
+                            let cleanFund = f.trim();
+                            if (cleanFund && cleanFund !== '-') {
+                                if (cleanFund === 'IPINRGR') cleanFund = 'ผู้ป่วยในรับบริการที่หน่วยบริการประจำ';
+                                else if (cleanFund === 'IPINRGC') cleanFund = 'ผู้ป่วยในนอกเขต';
+                                else if (cleanFund === 'CARREF') cleanFund = 'ค่าพาหนะในการรับส่งต่อผู้ป่วย';
+                                else if (cleanFund === 'CARREF-PUC') cleanFund = 'ค่าพาหนะในการรับส่งต่อผู้ป่วยสิทธิว่าง';
+                                else if (cleanFund === 'INST') cleanFund = 'อวัยวะเทียม';
+                                else if (cleanFund === 'IPPUC') cleanFund = 'สิทธิว่าง';
+                                else if (cleanFund === 'IPINSPSN-C') cleanFund = 'กรมแพทย์ทหาร';
+                                else if (cleanFund === 'IPNB-FIX') cleanFund = 'เด็กแรกเกิด';
+                                else if (cleanFund === 'IPNB-R') cleanFund = 'เด็กแรกเกิด';
+                                else if (cleanFund === 'IPINRGR-COVID-PAN') cleanFund = 'ผู้ป่วยในรับบริการที่หน่วยบริการประจำ';
+                                else if (cleanFund === 'CLOPIDOGREL_DRUG') cleanFund = 'ยาต้านเกล็ดเลือด';
+                                acc[cleanFund] = (acc[cleanFund] || 0) + 1;
+                            }
+                        });
+                    }
+                    return acc;
+                }, {});
+                const fundData = Object.keys(fundCount).map(k => ({ name: k, value: fundCount[k] }));
+
+                // Rights Breakdown
+                const rightsBreakdown = {
+                    'UCS': { name: 'UCS', total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'emerald' },
+                    'OFC': { name: 'OFC', total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'blue' },
+                    'LGO': { name: 'LGO', total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'cyan' },
+                    'SSS': { name: 'SSS', total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'indigo' },
+                    'A9':  { name: 'A9',  total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'violet' },
+                    'Others': { name: 'อื่นๆ', total: 0, claimed: 0, wait: 0, prb: 0, unclaimed: 0, color: 'gray' },
+                    'XXX': { name: 'สิทธิชำระเงิน', total: 0, paid: 0, color: 'slate' } // Changed name
+                };
+
+                const targetRights = ['UCS', 'OFC', 'LGO', 'SSS', 'A9', 'XXX'];
+                filtered.forEach(item => {
+                    const r = item.right.toUpperCase();
+                    let group = targetRights.includes(r) ? r : 'Others';
+                    
+                    if (group === 'XXX') {
+                        rightsBreakdown['XXX'].total++;
+                        rightsBreakdown['XXX'].paid++;
+                    } else {
+                        rightsBreakdown[group].total++;
+                        if (item.isClaimed) rightsBreakdown[group].claimed++;
+                        else {
+                            if (item.claimStatusText === 'รอนำเข้าไฟล์') rightsBreakdown[group].wait++;
+                            else rightsBreakdown[group].unclaimed++;
+                        }
+                    }
+                });
+                const rightsBreakdownList = Object.values(rightsBreakdown);
+
+                const depCount = filtered.reduce((acc, item) => { acc[item.department] = (acc[item.department] || 0) + 1; return acc; }, {});
+                const depData = Object.keys(depCount).map(k => ({ name: k, value: depCount[k] }));
+
+                const uniqueRights = ['All', ...new Set(dateFiltered.map(d => d.right))];
+                const uniqueFundsSet = new Set();
+                dateFiltered.forEach(item => {
+                    if(item.fund && item.fund !== '-') {
+                        item.fund.toString().split(',').forEach(f => {
+                            const clean = f.trim();
+                            if(clean && clean !== '-') uniqueFundsSet.add(clean);
+                        });
+                    }
+                });
+                const uniqueFunds = ['All', ...Array.from(uniqueFundsSet).sort()];
+                const uniqueClaimStatuses = ['All', ...new Set(dateFiltered.map(d => d.claimStatusText).filter(s => s && s !== ''))];
+
+                return {
+                    filtered: dateFiltered,
+                    tableData: finalFiltered,
+                    totalDischarged, totalNewAdmit, totalCost, totalOutstanding, totalClaimAmt, totalAdjRw,
+                    codedCount, uncodedCount, pdxUncodedList,
+                    summaryCompleteCount, summaryPendingCount,
+                    errorList, warningList,
+                    claimedCount, pendingClaimCount, 
+                    avgLagDays, 
+                    avgSummaryLag,
+                    avgDiagLag,
+                    avgCodingLag, // New
+                    claimWithinMonthCount, claimLateMonthCount,
+                    // Self Pay Stats
+                    selfPayTotal, selfPayPaid, selfPayPending,
+                    // --------------
+                    claimAnalysisCount, claimOutcomeData, outcomeCounts: outcome, 
+                    fundData, rightsBreakdownList, depData,
+                    uniqueRights, uniqueFunds, uniqueClaimStatuses,
+                    dateLabel: `${formatDateDisplay(startDate)} ถึง ${formatDateDisplay(endDate)}`
+                };
+            }, [rawData, filterType, selectedDate, selectedMonth, selectedFiscalYear, customStartDate, customEndDate, searchTerm, selectedRight, selectedFund, selectedClaimStatus]);
+
+            const totalPages = Math.ceil(processedData.tableData.length / itemsPerPage);
+            const paginatedData = useMemo(() => {
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                return processedData.tableData.slice(startIndex, startIndex + itemsPerPage);
+            }, [processedData.tableData, currentPage]);
+
+            const exportToExcel = () => {
+                const dataToExport = processedData.tableData.map(item => ({
+                    'AN': item.an,
+                    'วันที่จำหน่าย': item.dischargeDateDisplay,
+                    'วันที่สรุปชาร์จ': formatDateDisplay(item.dchSummaryDateIso),
+                    'Sum Lag (วัน)': item.summaryLagDays || '-',
+                    'วันที่วินิจฉัย': formatDateDisplay(item.diagDateIso),
+                    'Diag Lag (วัน)': item.diagLagDays || '-',
+                    'Coding Lag (วัน)': item.codingLagDays || '-',
+                    'แผนก': item.department,
+                    'วินิจฉัย (Pdx)': item.pdx,
+                    'สถานะ Coding': item.codingStatus,
+                    'สิทธิ์': item.right,
+                    'กองทุน': item.fund,
+                    'สถานะส่งเคลม (Flag)': item.isClaimed ? 'ส่งแล้ว' : 'ยังไม่ส่ง',
+                    'สถานะการเคลม (Text)': item.claimStatusText, 
+                    'Claim Error': item.claimError,
+                    'วันที่ส่ง': formatDateDisplay(item.claimDateIso),
+                    'Claim Lag (วัน)': item.claimLagDays || '-',
+                    'ค่ารักษา': item.cost,
+                    'ค้างชำระ': item.outstanding,
+                    'ยอดเคลม': item.claimAmt,
+                    'Adj.RW': item.adjRw
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(dataToExport);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "IPD_Report");
+                XLSX.utils.writeFile(wb, `IPD_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+            };
+
+            const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#94a3b8'];
+
+            if (error) return <div className="p-10 text-center text-red-500 bg-red-50">{error} <button onClick={fetchData} className="ml-4 px-4 py-2 bg-white border rounded">Try Again</button></div>;
+
+            return (
+                <div className="min-h-screen bg-slate-50 p-4 md:p-8 pb-20">
+                    <header className="max-w-7xl mx-auto mb-8">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                                <Activity className="text-indigo-600" /> IPD Analytics Dashboard
+                            </h1>
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <div className="text-sm text-slate-500 bg-white px-4 py-1 rounded-full shadow-sm border border-slate-200 inline-block">
+                                        ช่วงข้อมูล: <span className="font-bold text-indigo-600">{processedData.dateLabel}</span>
+                                    </div>
+                                    {lastUpdated && <div className="text-[10px] text-slate-400 mt-1 mr-2">อัปเดตล่าสุด: {lastUpdated.toLocaleTimeString()}</div>}
+                                </div>
+                                <button 
+                                    onClick={fetchData} 
+                                    disabled={loading}
+                                    className="p-2 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50"
+                                    title="รีเฟรชข้อมูล"
+                                >
+                                    <RefreshCw className={`w-5 h-5 text-slate-600 ${loading ? 'spin-anim' : ''}`} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Control Panel */}
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-6 items-center flex-wrap">
+                            <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto max-w-full">
+                                {[{ id: 'daily', label: 'รายวัน' }, { id: 'monthly', label: 'รายเดือน' }, { id: 'fiscal', label: 'ปีงบฯ' }, { id: 'custom', label: 'ช่วงเวลา' }].map(type => (
+                                    <label key={type.id} className="cursor-pointer relative shrink-0">
+                                        <input type="radio" name="filterType" value={type.id} checked={filterType === type.id} onChange={(e) => setFilterType(e.target.value)} className="sr-only" />
+                                        <span className={`block px-6 py-2 rounded-md text-sm transition-all whitespace-nowrap ${filterType === type.id ? '' : 'text-slate-500'}`}>{type.label}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="flex items-center gap-3 flex-wrap">
+                                {filterType === 'daily' && (
+                                    <div className="relative">
+                                        <input type="date" className="border rounded-lg px-3 py-2" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+                                    </div>
+                                )}
+                                {filterType === 'monthly' && <input type="month" className="border rounded-lg px-3 py-2" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />}
+                                {filterType === 'fiscal' && (
+                                    <select className="border rounded-lg px-3 py-2" value={selectedFiscalYear} onChange={(e) => setSelectedFiscalYear(parseInt(e.target.value))}>
+                                        {[ 2569, 2570,2571,2572,2573].map(y => <option key={y} value={y}>ปีงบ {y}</option>)}
+                                    </select>
+                                )}
+                                {filterType === 'custom' && (
+                                    <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200">
+                                        <input type="date" className="bg-transparent outline-none px-2 py-1 text-sm" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} />
+                                        <span className="text-slate-400">-</span>
+                                        <input type="date" className="bg-transparent outline-none px-2 py-1 text-sm" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </header>
+
+                    {loading && rawData.length === 0 ? (
+                        <div className="h-64 flex flex-col items-center justify-center text-indigo-600">
+                            <RefreshCw className="w-8 h-8 spin-anim mb-4"/>
+                            <span>กำลังโหลดข้อมูล...</span>
+                        </div>
+                    ) : (
+                    <main className="max-w-7xl mx-auto space-y-8">
+                        
+                        {/* Financial Section */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                            <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500 card-hover">
+                                <div className="flex justify-between">
+                                    <div><p className="text-sm text-slate-500">แอดมิทใหม่</p><h3 className="text-xl font-bold text-slate-800">{processedData.totalNewAdmit}</h3></div>
+                                    <div className="bg-blue-50 p-2 rounded text-blue-600"><UserPlus size={20} /></div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-indigo-500 card-hover">
+                                <div className="flex justify-between">
+                                    <div><p className="text-sm text-slate-500">จำหน่าย</p><h3 className="text-xl font-bold text-slate-800">{processedData.totalDischarged}</h3></div>
+                                    <div className="bg-indigo-50 p-2 rounded text-indigo-600"><Users size={20} /></div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 card-hover">
+                                <div className="flex justify-between">
+                                    <div><p className="text-sm text-slate-500">รวม Adj.RW</p><h3 className="text-xl font-bold text-slate-800">{processedData.totalAdjRw.toFixed(4)}</h3></div>
+                                    <div className="bg-emerald-50 p-2 rounded text-emerald-600"><Activity size={20} /></div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-amber-500 card-hover">
+                                <div className="flex justify-between">
+                                    <div><p className="text-sm text-slate-500">ค่ารักษา</p><h3 className="text-lg font-bold text-slate-800">฿{(processedData.totalCost).toLocaleString()}</h3></div>
+                                    <div className="bg-amber-50 p-2 rounded text-amber-600"><DollarSign size={20} /></div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-rose-500 card-hover">
+                                <div className="flex justify-between">
+                                    <div><p className="text-sm text-slate-500">ค้างชำระ</p><h3 className="text-lg font-bold text-slate-800">฿{processedData.totalOutstanding.toLocaleString()}</h3></div>
+                                    <div className="bg-rose-50 p-2 rounded text-rose-600"><AlertCircle size={20} /></div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500 card-hover">
+                                <div className="flex justify-between">
+                                    <div><p className="text-sm text-slate-500">ชดเชย</p><h3 className="text-lg font-bold text-slate-800">฿{processedData.totalClaimAmt.toLocaleString()}</h3></div>
+                                    <div className="bg-purple-50 p-2 rounded text-purple-600"><Wallet size={20} /></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Chart Row 1: Time & Lag Analytics (Updated with SPLIT CARDS) */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                            {/* Card 1: Doctor Summary Lag */}
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between relative">
+                                <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">แพทย์</span>
+                                <div>
+                                    <p className="text-sm text-slate-500 flex items-center gap-1"><FileSignature className="w-4 h-4"/> แพทย์สรุปชาร์จเฉลี่ย</p>
+                                    <div className="mt-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-bold text-purple-600">{processedData.avgSummaryLag}</span>
+                                            <span className="text-sm text-slate-500">วัน</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันสรุปชาร์จ</p>
+                                    </div>
+                                </div>
+                                <div className="bg-purple-50 p-4 rounded-full text-purple-500">
+                                    <FileSignature className="w-8 h-8" />
+                                </div>
+                            </div>
+
+                            {/* Card 2: Total Diagnosis Lag (New Split A) */}
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between relative">
+                                <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">เวชสถิติ</span>
+                                <div>
+                                    <p className="text-sm text-slate-500 flex items-center gap-1"><FileText className="w-4 h-4"/> ระยะเวลาแพทย์สรุป ถึง วินิจฉัย</p>
+                                    <div className="mt-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-bold text-teal-600">{processedData.avgCodingLag}</span>
+                                            <span className="text-sm text-slate-500">วัน</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">นับจากวันที่แพทย์สรุป ถึง วันที่วินิจฉัย</p>
+                                    </div>
+                                </div>
+                                <div className="bg-teal-50 p-4 rounded-full text-teal-500">
+                                    <FileText className="w-8 h-8" />
+                                </div>
+                            </div>
+
+                            {/* Card 3: Coding Process Lag (New Split B) */}
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between relative">
+                                <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">เวชสถิติ</span>
+                                <div>
+                                    <p className="text-sm text-slate-500 flex items-center gap-1"><Stethoscope className="w-4 h-4"/> ระยะเวลาวินิจฉัยเฉลี่ย</p>
+                                    <div className="mt-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-bold text-cyan-600">{processedData.avgDiagLag}</span>
+                                            <span className="text-sm text-slate-500">วัน</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันที่วินิจฉัย</p>
+                                    </div>
+                                </div>
+                                <div className="bg-cyan-50 p-4 rounded-full text-cyan-500">
+                                    <Stethoscope className="w-8 h-8" />
+                                </div>
+                            </div>
+
+                            {/* Card 4: Claim Lag */}
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between relative">
+                                <span className="absolute top-2 right-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">งานประกัน(เคลม)</span>
+                                <div>
+                                    <p className="text-sm text-slate-500 flex items-center gap-1"><Clock className="w-4 h-4"/> ระยะเวลาส่งเคลมเฉลี่ย</p>
+                                    <div className="mt-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-bold text-indigo-600">{processedData.avgLagDays}</span>
+                                            <span className="text-sm text-slate-500">วัน</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">นับจากวันจำหน่าย ถึง วันที่ส่งเคลม</p>
+                                    </div>
+                                </div>
+                                <div className="bg-indigo-50 p-4 rounded-full text-indigo-500">
+                                    <Activity className="w-8 h-8" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* --- Claim Analysis Section --- */}
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                             <h2 className="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2"><CheckSquare className="w-5 h-5"/> วิเคราะห์ผลลัพธ์การเคลม (จาก {processedData.claimAnalysisCount} รายการ) <span className="text-xs font-normal text-slate-400">*ไม่รวมสิทธิชำระเงิน</span></h2>
+                             
+                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                                {/* Stats Cards (Updated Grid) */}
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:col-span-2">
+                                    {/* 1. Transferred */}
+                                    <div className="p-4 rounded-lg bg-emerald-100 border border-emerald-200 flex flex-col items-center text-center">
+                                        <span className="text-3xl font-bold text-emerald-700">{processedData.outcomeCounts.transferred}</span>
+                                        <span className="text-sm text-emerald-800 font-bold mt-1">โอนเงินแล้ว</span>
+                                    </div>
+
+                                    {/* 2. Approved (Not Transferred) */}
+                                    <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100 flex flex-col items-center text-center">
+                                        <span className="text-3xl font-bold text-emerald-500">{processedData.outcomeCounts.approved}</span>
+                                        <span className="text-sm text-emerald-700 font-medium mt-1">อนุมัติ</span>
+                                    </div>
+                                    
+                                    {/* 3. Waiting Transfer/Cut-off */}
+                                    <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex flex-col items-center text-center">
+                                        <span className="text-3xl font-bold text-amber-600">{processedData.outcomeCounts.waitingTransfer}</span>
+                                        <span className="text-sm text-amber-800 font-medium mt-1">รอโอน/ตัดรอบ</span>
+                                    </div>
+
+                                    {/* 4. Processing */}
+                                    <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 flex flex-col items-center text-center">
+                                        <span className="text-3xl font-bold text-blue-600">{processedData.outcomeCounts.processing}</span>
+                                        <span className="text-sm text-blue-800 font-medium mt-1 flex items-center justify-center gap-1"><FileClock size={14}/> อยู่ระหว่างพิจารณา</span>
+                                    </div>
+
+                                    {/* 5. Error/Reprocess */}
+                                    <div className="p-4 rounded-lg bg-red-50 border border-red-100 flex flex-col items-center text-center">
+                                        <span className="text-3xl font-bold text-red-600">{processedData.outcomeCounts.errorReprocess}</span>
+                                        <span className="text-sm text-red-800 font-medium mt-1 flex items-center justify-center gap-1"><XOctagon size={14}/> ต้องแก้ไข / ส่งใหม่</span>
+                                    </div>
+
+                                    {/* 6. Others */}
+                                    <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 flex flex-col items-center text-center">
+                                        <span className="text-3xl font-bold text-slate-600">{processedData.outcomeCounts.others}</span>
+                                        <span className="text-sm text-slate-600 font-medium mt-1">ยังไม่ส่ง/รอนำเข้า</span>
+                                    </div>
+                                </div>
+
+                                {/* Donut Chart */}
+                                <div className="h-48 w-full relative">
+                                    {processedData.claimAnalysisCount > 0 ? (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={processedData.claimOutcomeData}
+                                                    dataKey="value"
+                                                    innerRadius={40}
+                                                    outerRadius={60}
+                                                    paddingAngle={5}
+                                                >
+                                                    {processedData.claimOutcomeData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip />
+                                                <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{fontSize:'12px'}}/>
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-sm">ยังไม่มีข้อมูลการส่งเคลม</div>
+                                    )}
+                                </div>
+                             </div>
+                        </div>
+
+                        {/* --- NEW SECTION: Monthly Claim Timing --- */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {/* Sent Within Month */}
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between col-span-1 lg:col-span-2">
+                                <div>
+                                    <p className="text-sm text-slate-500 flex items-center gap-1"><CalendarCheck className="w-4 h-4"/> ส่งเคลมภายในเดือน (ไม่รวมสิทธิชำระเงิน)</p>
+                                    <div className="mt-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-bold text-emerald-600">{processedData.claimWithinMonthCount}</span>
+                                            <span className="text-sm text-slate-500">เคส</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">จำหน่ายและส่งเคลมในเดือนเดียวกัน</p>
+                                    </div>
+                                </div>
+                                <div className="bg-emerald-50 p-4 rounded-full text-emerald-500">
+                                    <CalendarCheck className="w-8 h-8" />
+                                </div>
+                            </div>
+
+                            {/* Sent Late (Not Within Month) */}
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between col-span-1 lg:col-span-2">
+                                <div>
+                                    <p className="text-sm text-slate-500 flex items-center gap-1"><CalendarOff className="w-4 h-4"/> ส่งเคลมไม่ทันภายในเดือน (ไม่รวมสิทธิชำระเงิน)</p>
+                                    <div className="mt-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-bold text-orange-500">{processedData.claimLateMonthCount}</span>
+                                            <span className="text-sm text-slate-500">เคส</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">ส่งเคลมคนละเดือนกับเดือนที่จำหน่าย</p>
+                                    </div>
+                                </div>
+                                <div className="bg-orange-50 p-4 rounded-full text-orange-500">
+                                    <CalendarOff className="w-8 h-8" />
+                                </div>
+                            </div>
+
+                            {/* Self Pay Paid */}
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between col-span-1 lg:col-span-2">
+                                <div>
+                                    <p className="text-sm text-slate-500 flex items-center gap-1"><Coins className="w-4 h-4"/> สิทธิชำระเงิน ชำระครบ</p>
+                                    <div className="mt-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-bold text-teal-600">{processedData.selfPayPaid}</span>
+                                            <span className="text-sm text-slate-500">เคส</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">ยอดค้างชำระ = 0</p>
+                                    </div>
+                                </div>
+                                <div className="bg-teal-50 p-4 rounded-full text-teal-500">
+                                    <CheckCircle2 className="w-8 h-8" />
+                                </div>
+                            </div>
+
+                            {/* Self Pay Pending */}
+                            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between col-span-1 lg:col-span-2">
+                                <div>
+                                    <p className="text-sm text-slate-500 flex items-center gap-1"><AlertTriangle className="w-4 h-4"/> สิทธิชำระเงิน ค้างชำระ</p>
+                                    <div className="mt-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-bold text-rose-500">{processedData.selfPayPending}</span>
+                                            <span className="text-sm text-slate-500">เคส</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">มียอดค้างชำระ (รอจ่าย)</p>
+                                    </div>
+                                </div>
+                                <div className="bg-rose-50 p-4 rounded-full text-rose-500">
+                                    <Wallet className="w-8 h-8" />
+                                </div>
+                            </div>
+                        </div>
+                        {/* ----------------------------------------- */}
+
+                        {/* Rights Analysis Section (Grid Cards) */}
+                        <div>
+                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-slate-700">
+                                <FileText className="text-blue-500 w-5 h-5" /> สถานะการส่งเคลมแยกรายสิทธิ์
+                            </h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+                                {processedData.rightsBreakdownList.map((rightData, idx) => {
+                                    const percent = rightData.total > 0 ? ((rightData.claimed / rightData.total) * 100).toFixed(0) : 0;
+                                    
+                                    return (
+                                        <div key={idx} className="bg-white p-3 rounded-lg shadow-sm border border-slate-200 flex flex-col">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className={`text-sm font-bold px-2 py-0.5 rounded bg-${rightData.color}-100 text-${rightData.color}-700`}>{rightData.name}</span>
+                                                <span className="text-xs text-slate-400">{rightData.total} คน</span>
+                                            </div>
+                                            
+                                            {rightData.name === 'สิทธิชำระเงิน' ? (
+                                                <div className="mt-auto">
+                                                    <div className="text-center py-2 bg-slate-50 rounded text-xs text-slate-500 font-medium">
+                                                        ชำระเงินเองทั้งหมด
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1 text-xs mt-auto">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-emerald-600 font-medium">ส่งแล้ว</span>
+                                                        <span>{rightData.claimed}</span>
+                                                    </div>
+                                                    <div className="w-full bg-slate-100 rounded-full h-1.5">
+                                                        <div 
+                                                            className="bg-emerald-500 h-1.5 rounded-full" 
+                                                            style={{ width: `${percent}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    
+                                                    <div className="pt-2 border-t border-slate-100 space-y-1 text-[10px] text-slate-500">
+                                                        <div className="flex justify-between">
+                                                            <span>รอ REP</span> 
+                                                            <span>{rightData.wait}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-slate-400">
+                                                            <span>ยังไม่ส่ง</span> 
+                                                            <span>{rightData.unclaimed}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Chart Row 2: Fund Analysis */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Fund Analysis (Pie) */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                    <Wallet className="text-emerald-500 w-5 h-5" /> สัดส่วนกองทุนย่อย (เฉพาะสิทธิ์ UCS + ผ่านแล้ว)
+                                </h3>
+                                <div className="flex flex-col md:flex-row items-center gap-6">
+                                    {/* Chart Side */}
+                                    <div className="h-64 w-full md:w-1/2">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={processedData.fundData}
+                                                    dataKey="value"
+                                                    outerRadius={80}
+                                                    innerRadius={60}
+                                                    paddingAngle={2}
+                                                    label={false} 
+                                                >
+                                                    {processedData.fundData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip formatter={(value, name, props) => [value.toLocaleString(), name]} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+
+                                    {/* Legend Side (Custom HTML List) */}
+                                    <div className="w-full md:w-1/2 max-h-64 overflow-y-auto pr-2 custom-list-scroll">
+                                        <div className="space-y-3">
+                                            {processedData.fundData.sort((a,b) => b.value - a.value).map((entry, index) => {
+                                                const sumFunds = processedData.fundData.reduce((acc, cur) => acc + cur.value, 0);
+                                                const p = sumFunds > 0 ? ((entry.value / sumFunds) * 100).toFixed(1) : 0;
+                                                
+                                                return (
+                                                    <div key={index} className="flex items-start justify-between text-sm border-b border-slate-50 pb-2 last:border-0">
+                                                        <div className="flex items-start gap-2">
+                                                            <span className="w-3 h-3 rounded-full mt-1 shrink-0" style={{backgroundColor: COLORS[index % COLORS.length]}}></span>
+                                                            <span className="text-slate-600 font-medium break-words">{entry.name || 'ไม่ระบุ'}</span>
+                                                        </div>
+                                                        <div className="text-right shrink-0 ml-2">
+                                                            <div className="font-bold text-slate-700">{entry.value.toLocaleString()}</div>
+                                                            <div className="text-xs text-slate-400">{p}%</div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Quality/Department Section moved here to fill space */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                    <ClipboardList className="text-blue-500 w-5 h-5" /> ข้อมูลคุณภาพ
+                                </h3>
+                                <div className="space-y-4">
+
+                                    {/* Doctor Summary Status Block (NEW) */}
+                                    <div className="bg-slate-50 p-4 rounded-lg flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-slate-500">สถานะแพทย์สรุปชาร์จ</p>
+                                            <div className="flex items-center gap-4 mt-1">
+                                                <div className="text-purple-600 font-bold">
+                                                    {processedData.summaryCompleteCount} <span className="text-xs font-normal text-slate-400">Complete</span>
+                                                </div>
+                                                <div className="text-orange-500 font-bold">
+                                                    {processedData.summaryPendingCount} <span className="text-xs font-normal text-slate-400">Pending</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="h-10 w-10">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={[{ val: processedData.summaryCompleteCount }, { val: processedData.summaryPendingCount }]}
+                                                        dataKey="val"
+                                                        outerRadius={20}
+                                                        innerRadius={10}
+                                                        stroke="none"
+                                                    >
+                                                        <Cell fill="#9333ea" /> {/* Purple for Summary */}
+                                                        <Cell fill="#f97316" /> {/* Orange for Pending */}
+                                                    </Pie>
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                    {/* ---------------------------------- */}
+
+                                    <div className="bg-slate-50 p-4 rounded-lg flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-slate-500">Coding Status</p>
+                                            <div className="flex items-center gap-4 mt-1">
+                                                <div className="text-emerald-600 font-bold">{processedData.codedCount} <span className="text-xs font-normal text-slate-400">Complete</span></div>
+                                                <div className="text-orange-500 font-bold">{processedData.uncodedCount} <span className="text-xs font-normal text-slate-400">Uncoded</span></div>
+                                            </div>
+                                        </div>
+                                        <div className="h-10 w-10">
+                                            <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={[{val: processedData.codedCount}, {val: processedData.uncodedCount}]} dataKey="val" outerRadius={20} innerRadius={10} stroke="none"><Cell fill="#10b981"/> <Cell fill="#f97316"/></Pie></PieChart></ResponsiveContainer>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-4 rounded-lg">
+                                        <div className="flex justify-between items-start mb-2"><p className="text-sm text-slate-500">Errors / Warnings (Coding)</p>{processedData.errorList.length === 0 ? <CheckCircle2 className="text-emerald-500 w-4 h-4"/> : <AlertTriangle className="text-red-500 w-4 h-4"/>}</div>
+                                        <div className="flex gap-4">
+                                            <div><span className="text-xl font-bold text-red-600">{processedData.errorList.length}</span><span className="text-[10px] text-slate-400 block">Errors</span></div>
+                                            <div><span className="text-xl font-bold text-yellow-600">{processedData.warningList.length}</span><span className="text-[10px] text-slate-400 block">Warnings</span></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-4 rounded-lg">
+                                        <p className="text-sm text-slate-500 mb-1">อันดับผู้ป่วยสูงที่สุด</p>
+                                        {processedData.depData.length > 0 ? (
+                                            <div className="flex items-center justify-between"><span className="font-bold text-slate-700">{processedData.depData.sort((a,b) => b.value - a.value)[0].name}</span><span className="font-bold text-indigo-600">{processedData.depData.sort((a,b) => b.value - a.value)[0].value} เคส</span></div>
+                                        ) : <span className="text-slate-400">-</span>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Filter & Master Table */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                             <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                                <h3 className="font-bold text-slate-700 whitespace-nowrap">
+                                    ข้อมูลผู้ป่วย ({processedData.tableData.length})
+                                </h3>
+                                
+                                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                                    <div className="flex items-center bg-white border border-slate-300 rounded px-2 py-1.5 flex-1 md:flex-none">
+                                        <Search size={16} className="text-slate-400 mr-2" />
+                                        <input 
+                                            type="text" 
+                                            placeholder="ค้นหาชื่อ / AN..." 
+                                            className="bg-transparent outline-none text-sm w-full md:w-32"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-xs text-slate-500">สิทธิ์:</span>
+                                        <select 
+                                            className="border rounded text-sm py-1 px-2 outline-none max-w-[120px]"
+                                            value={selectedRight}
+                                            onChange={(e) => setSelectedRight(e.target.value)}
+                                        >
+                                            {processedData.uniqueRights.map(r => <option key={r} value={r}>{r}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-xs text-slate-500">กองทุน:</span>
+                                        <select 
+                                            className="border rounded text-sm py-1 px-2 outline-none max-w-[120px]"
+                                            value={selectedFund}
+                                            onChange={(e) => setSelectedFund(e.target.value)}
+                                        >
+                                            {processedData.uniqueFunds.map(f => <option key={f} value={f}>{f}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Claim Status Filter */}
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-xs text-slate-500">สถานะ:</span>
+                                        <select 
+                                            className="border rounded text-sm py-1 px-2 outline-none max-w-[120px]"
+                                            value={selectedClaimStatus}
+                                            onChange={(e) => setSelectedClaimStatus(e.target.value)}
+                                        >
+                                            {processedData.uniqueClaimStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <button 
+                                        onClick={exportToExcel}
+                                        className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm shadow transition ml-auto md:ml-2"
+                                    >
+                                        <Download size={14} /> Excel
+                                    </button>
+                                </div>
+                             </div>
+
+                             <div className="overflow-x-auto w-full">
+                                <table className="min-w-full text-left text-sm whitespace-nowrap">
+                                    <thead className="bg-white border-b border-slate-200">
+                                        <tr className="text-slate-500 uppercase bg-slate-50/50">
+                                            <th className="px-4 py-3 sticky left-0 bg-slate-50 z-10 shadow-r">AN</th>
+                                            <th className="px-4 py-3">วันที่จำหน่าย</th>
+                                            <th className="px-4 py-3 text-purple-600">วันที่สรุปชาร์จ</th>
+                                            <th className="px-4 py-3 text-cyan-600">วันที่วินิจฉัย</th>
+                                            <th className="px-4 py-3">วันที่ส่ง</th>
+                                            <th className="px-4 py-3 text-center border-l border-slate-100">Sum Lag</th>
+                                            <th className="px-4 py-3 text-center">Diag Lag</th>
+                                            <th className="px-4 py-3 text-center">Claim Lag</th>
+                                            <th className="px-4 py-3 border-l border-slate-100">แผนก</th>
+                                            <th className="px-4 py-3">Pdx</th>
+                                            <th className="px-4 py-3">สถานะ Coding</th>
+                                            <th className="px-4 py-3">สถานะส่งเคลม</th>
+                                            <th className="px-4 py-3">สถานะการเคลม</th>
+                                            <th className="px-4 py-3 text-red-500">Claim Error</th>
+                                            <th className="px-4 py-3">สิทธิ์</th>
+                                            <th className="px-4 py-3 bg-yellow-50 text-yellow-800">กองทุน</th>
+                                            <th className="px-4 py-3 text-right">ค่ารักษา</th>
+                                            <th className="px-4 py-3 text-right text-rose-600">ค้างชำระ</th>
+                                            <th className="px-4 py-3 text-right text-purple-600">ชดเชย</th>
+                                            <th className="px-4 py-3 text-right">Adj.RW</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {paginatedData.length > 0 ? (
+                                            paginatedData.map((item, idx) => (
+                                                <tr key={idx} className="hover:bg-indigo-50/30 transition-colors">
+                                                    <td className="px-4 py-2 font-medium sticky left-0 bg-white border-r border-slate-100">{item.an}</td>
+                                                    <td className="px-4 py-2">{formatDateDisplay(item.dischargeDateIso)}</td>
+                                                    <td className="px-4 py-2 text-purple-700 font-medium">{formatDateDisplay(item.dchSummaryDateIso)}</td>
+                                                    <td className="px-4 py-2 text-cyan-700">{formatDateDisplay(item.diagDateIso)}</td>
+                                                    <td className="px-4 py-2 text-xs text-slate-600">
+                                                        {item.isClaimed ? formatDateDisplay(item.claimDateIso) : '-'}
+                                                    </td>
+                                                    
+                                                    {/* Lag Columns */}
+                                                    <td className="px-4 py-2 text-center border-l border-slate-100">
+                                                        {item.summaryLagDays !== null ? (
+                                                            <span className={`font-mono font-medium ${item.summaryLagDays > 3 ? 'text-orange-500' : 'text-slate-600'}`}>{item.summaryLagDays}</span>
+                                                        ) : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center">
+                                                        {item.diagLagDays !== null ? (
+                                                            <span className={`font-mono font-medium ${item.diagLagDays > 7 ? 'text-orange-500' : 'text-slate-600'}`}>{item.diagLagDays}</span>
+                                                        ) : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center">
+                                                        {item.claimLagDays !== null ? (
+                                                            <span className={`font-mono font-medium ${item.claimLagDays > 30 ? 'text-red-500' : 'text-slate-600'}`}>{item.claimLagDays}</span>
+                                                        ) : '-'}
+                                                    </td>
+
+                                                    <td className="px-4 py-2 border-l border-slate-100">{item.department}</td>
+                                                    <td className="px-4 py-2">{item.pdx || '-'}</td>
+                                                    <td className="px-4 py-2">
+                                                        <span className={`text-xs font-bold px-2 py-1 rounded ${item.codingStatus === 'Uncoded' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                            {item.codingStatus}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        {item.right === 'XXX' ? (
+                                                            <span className="flex items-center gap-1 text-slate-600 bg-slate-200 px-2 py-0.5 rounded-full text-xs font-bold w-fit">สิทธิชำระเงิน</span>
+                                                        ) : item.isClaimed ? (
+                                                            <span className="flex items-center gap-1 text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-xs font-bold w-fit"><CheckCircle2 className="w-3 h-3"/> ส่งแล้ว</span>
+                                                        ) : item.claimStatusText === 'รอนำเข้าไฟล์' ? (
+                                                            <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full text-xs font-bold w-fit">รอนำเข้าไฟล์</span>
+                                                        ) : (
+                                                            <span className="text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full text-xs w-fit">ยังไม่ส่ง</span>
+                                                        )}
+                                                    </td>
+                                                    
+                                                    <td className="px-4 py-2 text-xs text-slate-700">{item.claimStatusText}</td>
+                                                    <td className="px-4 py-2 text-xs font-medium text-red-500">
+                                                        {item.claimError === '-' ? <span className="text-slate-300">-</span> : item.claimError}
+                                                    </td>
+
+                                                    <td className="px-4 py-2 text-xs">{item.right}</td>
+                                                    <td className="px-4 py-2 text-xs bg-yellow-50/30 text-slate-700">{item.fund}</td>
+                                                    <td className="px-4 py-2 text-right">{item.cost.toLocaleString()}</td>
+                                                    <td className="px-4 py-2 text-right font-medium text-rose-600">{item.outstanding.toLocaleString()}</td>
+                                                    <td className="px-4 py-2 text-right font-medium text-purple-600">{item.claimAmt.toLocaleString()}</td>
+                                                    <td className="px-4 py-2 text-right font-mono">{item.adjRw>0?item.adjRw.toFixed(4):'-'}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="18" className="text-center py-10 text-slate-400">ไม่พบข้อมูลตามเงื่อนไข</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                             </div>
+
+                             {/* Pagination Controls */}
+                             <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                <span className="text-xs text-slate-500">
+                                    แสดง {paginatedData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} ถึง {Math.min(currentPage * itemsPerPage, processedData.tableData.length)} จากทั้งหมด {processedData.tableData.length} รายการ
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className="p-2 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronLeft size={16}/>
+                                    </button>
+                                    
+                                    <span className="text-sm font-medium text-slate-700 px-2">
+                                        หน้าที่ {currentPage} / {totalPages || 1}
+                                    </span>
+
+                                    <button 
+                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={currentPage >= totalPages}
+                                        className="p-2 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronRight size={16}/>
+                                    </button>
+                                </div>
+                             </div>
+                        </div>
+
+                    </main>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Dashboard />);</script></body></html>
