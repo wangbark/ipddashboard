@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard ตรวจสอบข้อมูล</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        .swal2-popup { border-radius: 24px !important; padding: 20px 10px !important; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #fdf2f8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-[#fdf4f6] via-[#f3f4fb] to-[#fcf5f7] min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white/70 backdrop-blur-xl border border-white rounded-[2rem] shadow-xl p-10 max-w-md w-full text-center relative overflow-hidden">
+        <div class="absolute -top-16 -right-16 w-32 h-32 bg-pink-100 rounded-full blur-3xl opacity-50"></div>
+        <div class="absolute -bottom-16 -left-16 w-32 h-32 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
+
+        <div class="relative w-20 h-20 bg-gradient-to-tr from-pink-200 to-purple-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border-4 border-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+        </div>
+        
+        <h2 class="text-2xl font-semibold text-gray-700 mb-2 relative z-10">ระบบตรวจสอบข้อมูล</h2>
+        <p class="text-gray-400 mb-8 text-sm relative z-10">กรุณากรอกรหัส 13 หลักเพื่อค้นหาประวัติ</p>
+
+        <div class="space-y-4 relative z-10">
+            <input type="text" id="searchInput" maxlength="13" placeholder="เลข 13 หลัก"
+                class="w-full bg-white border-2 border-pink-50 focus:border-purple-200 focus:ring-4 focus:ring-purple-50 rounded-2xl py-4 px-6 outline-none transition-all text-gray-600 tracking-[0.2em] text-center font-medium placeholder-gray-300 shadow-sm"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            
+            <button onclick="searchData()" id="searchBtn"
+                class="w-full bg-gradient-to-r from-pink-300 to-purple-300 hover:from-pink-400 hover:to-purple-400 text-white rounded-2xl py-4 px-6 font-medium shadow-lg transition-all transform hover:-translate-y-1 active:translate-y-0 flex justify-center items-center gap-2">
+                <span>ค้นหาเลย</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ใช้ลิงก์ Published CSV ที่เสถียรที่สุดสำหรับลิงก์ 2PACX ของคุณ
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR565TQ0or87M32Ir_JHFKUBz8ai2fivYp7l0FHUUm0jjNAFo4ptP_Qug2xZLONVorjyjrCChe1PXbs/pub?gid=0&single=true&output=csv';
+
+        async function searchData() {
+            const inputVal = document.getElementById('searchInput').value.trim();
+            const btn = document.getElementById('searchBtn');
+
+            if (inputVal.length !== 13) {
+                Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบ', text: 'กรุณากรอกเลขให้ครบ 13 หลัก', confirmButtonColor: '#f9a8d4' });
+                return;
+            }
+
+            btn.innerHTML = 'กำลังค้นหา...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(CSV_URL);
+                if (!res.ok) throw new Error('ไม่สามารถเข้าถึงข้อมูลได้');
+                
+                const csvText = await res.text();
+                
+                // แยกแถวและคอลัมน์ (รองรับกรณีข้อมูลมีเครื่องหมายคำพูด)
+                const rows = csvText.split('\n').map(row => {
+                    const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                    return matches ? matches.map(val => val.replace(/^"|"$/g, '')) : row.split(',');
+                });
+
+                const headers = rows[0].map(h => h.toLowerCase().trim());
+                const cidIndex = headers.indexOf('cid');
+
+                if (cidIndex === -1) {
+                    Swal.fire('Error', 'ไม่พบคอลัมน์ชื่อ cid ในชีตของคุณ', 'error');
+                    resetButton(btn); return;
+                }
+
+                // ค้นหาข้อมูล
+                const foundRow = rows.slice(1).find(row => row[cidIndex] && row[cidIndex].trim() === inputVal);
+
+                if (foundRow) {
+                    let htmlContent = '<div class="text-left space-y-3 mt-4 max-h-[50vh] overflow-y-auto px-2">';
+                    headers.forEach((header, idx) => {
+                        if (header !== 'cid' && header !== '') {
+                            const value = foundRow[idx] || '-';
+                            htmlContent += `
+                                <div class="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 flex flex-col hover:bg-pink-50/30 transition-colors">
+                                    <span class="text-[0.7rem] font-semibold text-purple-400 mb-1 uppercase tracking-wider">${rows[0][idx]}</span>
+                                    <span class="text-gray-700 text-[0.95rem] font-medium">${value}</span>
+                                </div>`;
+                        }
+                    });
+                    htmlContent += '</div>';
+
+                    Swal.fire({ title: 'พบข้อมูลในระบบ', html: htmlContent, icon: 'success', confirmButtonColor: '#d8b4e2' });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล', text: `ไม่เจอเลข ${inputVal} ในระบบ`, confirmButtonColor: '#f9a8d4' });
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เชื่อมต่อล้มเหลว', text: 'โปรดตรวจสอบว่าได้กด "เผยแพร่ทางเว็บ" แล้วหรือไม่', confirmButtonColor: '#f9a8d4' });
+            } finally { resetButton(btn); }
+        }
+
+        function resetButton(btn) { btn.disabled = false; btn.innerHTML = '<span>ค้นหาเลย</span>'; }
+    </script>
+</body>
+</html>
